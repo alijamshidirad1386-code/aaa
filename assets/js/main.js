@@ -1,13 +1,11 @@
 /**
- * PetRaPet Cat Boutique - Vanilla JavaScript Core
+ * PetraPet Cat Boutique - Vanilla JavaScript Core
  * Cloudflare Pages Ready - No build step or npm required
  */
 
 // Global Configuration
 const INSTAGRAM_URL = "https://www.instagram.com/petra_petclinic?stkn=MTVmM2Q4ZGhqNjloMw==";
 const SUPPORT_PHONE = "09960494973";
-const WHATSAPP_URL = "https://wa.me/989960494973";
-const TELEGRAM_URL = "https://t.me/petrapetshop";
 
 // Storage Keys
 const LS_PRODUCTS = "foxshop_products_data";
@@ -24,11 +22,11 @@ let products = [];
 let categories = [];
 let cart = [];
 let settings = {
-  shopName: "PetRaPet",
+  shopName: "PetraPet",
   phone: "+98 996 049 4973",
   instagramUrl: INSTAGRAM_URL,
-  aboutText: "پت‌شاپ PetRaPet با هدف ارائه مرغوب‌ترین و اصیل‌ترین خوراک و ملزومات گربه‌ها ایجاد شده است. ما اهمیت عشق و مراقبتی که نسبت به گربه‌تان دارید را درک می‌کنیم؛ از این رو محصولات را با اطلاعات قابل بررسی درباره برند، اصالت و انقضا عرضه می‌کنیم.",
-  storeLocation: "ایران",
+  aboutText: "پت‌شاپ PetraPet در تبریز با هدف ارائه مرغوب‌ترین و اصیل‌ترین خوراک و ملزومات گربه‌ها ایجاد شده است. ما اهمیت عشق و مراقبتی که نسبت به گربه‌تان دارید را درک می‌کنیم؛ از این رو محصولات را با اطلاعات قابل بررسی درباره برند، اصالت و انقضا عرضه می‌کنیم.",
+  storeLocation: "تبریز، ایران",
   freeShippingThreshold: 3500000,
   shippingCost: 120000,
   shippingDispatchTime: "۱ تا ۲ روز کاری",
@@ -44,8 +42,8 @@ let backendReady = false;
 let lastRemoteStore = null;
 let customerStories = [];
 if (typeof window !== 'undefined') {
-  window.__PETRAPET_STORE_READY__ = false;
-  window.__PETRAPET_STORE_LOADING__ = true;
+  window.__FOXSHOP_STORE_READY__ = false;
+  window.__FOXSHOP_STORE_LOADING__ = true;
 }
 
 // Safe read-only bridges for additive storefront modules. Existing internal state remains the source of truth.
@@ -62,7 +60,7 @@ if (typeof window !== "undefined") {
 
 // Initialize on DOM Ready
 document.addEventListener("DOMContentLoaded", async () => {
-  initPetRaPetPageNavigationLoader();
+  initPetraPetPageNavigationLoader();
   initMobileBottomNav();
   try { await initStorage(); } catch (err) { console.error("Init storage error:", err); }
   initHeader();
@@ -161,22 +159,22 @@ function applyRemoteStore(store) {
   lastRemoteStore = { categories, products, settings: { ...settings }, customerStories };
   backendReady = true;
   if (typeof window !== 'undefined') {
-    window.__PETRAPET_STORE_READY__ = true;
-    window.__PETRAPET_STORE_LOADING__ = false;
+    window.__FOXSHOP_STORE_READY__ = true;
+    window.__FOXSHOP_STORE_LOADING__ = false;
     window.dispatchEvent(new CustomEvent('foxshop:store-ready'));
   }
   return true;
 }
 
-const PETRAPET_STORE_CACHE_KEY = "foxshop_store_cache_v1";
-const PETRAPET_STORE_CACHE_TTL = 30000;
+const FOXSHOP_STORE_CACHE_KEY = "foxshop_store_cache_v1";
+const FOXSHOP_STORE_CACHE_TTL = 30000;
 
-function readPetRaPetStoreCache() {
+function readPetraPetStoreCache() {
   try {
-    const raw = sessionStorage.getItem(PETRAPET_STORE_CACHE_KEY);
+    const raw = sessionStorage.getItem(FOXSHOP_STORE_CACHE_KEY);
     const cached = raw ? JSON.parse(raw) : null;
     if (!cached || !cached.data || !cached.ts) return null;
-    if (Date.now() - Number(cached.ts) > PETRAPET_STORE_CACHE_TTL) return null;
+    if (Date.now() - Number(cached.ts) > FOXSHOP_STORE_CACHE_TTL) return null;
     return cached.data;
   } catch (_) { return null; }
 }
@@ -184,7 +182,7 @@ function readPetRaPetStoreCache() {
 async function refreshRemoteStore() {
   const data = await apiRequest("/store", { timeoutMs: 6000 });
   applyRemoteStore(data);
-  try { sessionStorage.setItem(PETRAPET_STORE_CACHE_KEY, JSON.stringify({ ts: Date.now(), data })); } catch (_) {}
+  try { sessionStorage.setItem(FOXSHOP_STORE_CACHE_KEY, JSON.stringify({ ts: Date.now(), data })); } catch (_) {}
   return data;
 }
 
@@ -194,7 +192,7 @@ async function refreshRemoteStore() {
 let foxShopEarlyStorePromise = null;
 function getRemoteStoreOnce() {
   if (!foxShopEarlyStorePromise) {
-    const cached = readPetRaPetStoreCache();
+    const cached = readPetraPetStoreCache();
     if (cached) {
       applyRemoteStore(cached);
       foxShopEarlyStorePromise = Promise.resolve(cached);
@@ -264,8 +262,8 @@ async function initStorage() {
     cart = normalizeCart(savedCart ? JSON.parse(savedCart) : []);
   } catch { cart = []; }
   if (!backendReady && typeof window !== 'undefined') {
-    window.__PETRAPET_STORE_READY__ = true;
-    window.__PETRAPET_STORE_LOADING__ = false;
+    window.__FOXSHOP_STORE_READY__ = true;
+    window.__FOXSHOP_STORE_LOADING__ = false;
     window.dispatchEvent(new CustomEvent('foxshop:store-ready'));
   }
 }
@@ -336,15 +334,15 @@ function escapeHtml(str) {
 }
 
 /*
- * PetRaPet page navigation loader. Replaces decorative navigation flashes with
+ * PetraPet page navigation loader. Replaces decorative navigation flashes with
  * one clean full-screen loader and works on every page using this shared file.
  */
-const PETRAPET_LOGO_URL = "https://lh3.googleusercontent.com/aida-public/AB6AXuCA9wPsl74QezScl6MSgkI2o0xUTzfcjGUtFbzxomrJAIf6RXTyJ4Vt37NbG-HSROy0k7OY1w1g0FQycVmExxDWxx-pTo4BozV8Rt7OnTeb8vvsIBis0RxQIaeFqPPYcMaOM7KMCmth-w7A9l_TAW9Z_nmWueMMYj89L-312K11CIz-TgjjEO9hEsd41UPsCivtswJi7O-hpFxHWGJl4xZHf5w5R50arV9ZPUhMFzPJlfyNtICfR0IBS6hMALr65T-hxkA";
-const PETRAPET_NAV_LOADER_KEY = "foxshop_nav_loader_v1";
+const FOXSHOP_LOGO_URL = "https://lh3.googleusercontent.com/aida-public/AB6AXuCA9wPsl74QezScl6MSgkI2o0xUTzfcjGUtFbzxomrJAIf6RXTyJ4Vt37NbG-HSROy0k7OY1w1g0FQycVmExxDWxx-pTo4BozV8Rt7OnTeb8vvsIBis0RxQIaeFqPPYcMaOM7KMCmth-w7A9l_TAW9Z_nmWueMMYj89L-312K11CIz-TgjjEO9hEsd41UPsCivtswJi7O-hpFxHWGJl4xZHf5w5R50arV9ZPUhMFzPJlfyNtICfR0IBS6hMALr65T-hxkA";
+const FOXSHOP_NAV_LOADER_KEY = "foxshop_nav_loader_v1";
 let foxShopPageLoader = null;
 let foxShopPageLoaderTimer = null;
 
-function ensurePetRaPetPageLoader() {
+function ensurePetraPetPageLoader() {
   if (foxShopPageLoader && foxShopPageLoader.isConnected) return foxShopPageLoader;
   const existing = document.getElementById("fox-global-page-loader");
   if (existing) {
@@ -358,7 +356,7 @@ function ensurePetRaPetPageLoader() {
   loader.setAttribute("aria-busy", "true");
   loader.innerHTML = `
     <div class="fox-global-loader-card" role="status">
-      <div class="fox-global-loader-logo"><img src="${PETRAPET_LOGO_URL}" alt="PetRaPet" decoding="async"></div>
+      <div class="fox-global-loader-logo"><img src="${FOXSHOP_LOGO_URL}" alt="PetraPet" decoding="async"></div>
       <div class="fox-global-loader-spinner" aria-hidden="true"></div>
       <div class="fox-global-loader-title">در حال بارگیری</div>
       <div class="fox-global-loader-subtitle">لطفاً چند لحظه صبر کنید…</div>
@@ -369,8 +367,8 @@ function ensurePetRaPetPageLoader() {
   return loader;
 }
 
-function showPetRaPetPageLoader() {
-  const loader = ensurePetRaPetPageLoader();
+function showPetraPetPageLoader() {
+  const loader = ensurePetraPetPageLoader();
   if (!loader) return;
   if (foxShopPageLoaderTimer) clearTimeout(foxShopPageLoaderTimer);
   loader.classList.remove("is-hiding");
@@ -379,8 +377,8 @@ function showPetRaPetPageLoader() {
   document.documentElement.classList.add("fox-page-loading");
 }
 
-function hidePetRaPetPageLoader(delay = 120) {
-  const loader = ensurePetRaPetPageLoader();
+function hidePetraPetPageLoader(delay = 120) {
+  const loader = ensurePetraPetPageLoader();
   if (!loader) return;
   if (foxShopPageLoaderTimer) clearTimeout(foxShopPageLoaderTimer);
   foxShopPageLoaderTimer = setTimeout(() => {
@@ -395,7 +393,7 @@ function hidePetRaPetPageLoader(delay = 120) {
   }, Math.max(0, Number(delay) || 0));
 }
 
-function isPetRaPetInternalNavigationLink(anchor, event) {
+function isPetraPetInternalNavigationLink(anchor, event) {
   if (!anchor || !anchor.href) return false;
   if (event.defaultPrevented || event.button !== 0) return false;
   if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return false;
@@ -411,49 +409,49 @@ function isPetRaPetInternalNavigationLink(anchor, event) {
   return true;
 }
 
-function initPetRaPetPageNavigationLoader() {
-  const loader = ensurePetRaPetPageLoader();
+function initPetraPetPageNavigationLoader() {
+  const loader = ensurePetraPetPageLoader();
   if (!loader || loader.dataset.bound === "1") return;
   loader.dataset.bound = "1";
   let navigating = false;
   let loadStartedAt = 0;
   try {
-    const pending = sessionStorage.getItem(PETRAPET_NAV_LOADER_KEY) === "1";
-    sessionStorage.removeItem(PETRAPET_NAV_LOADER_KEY);
+    const pending = sessionStorage.getItem(FOXSHOP_NAV_LOADER_KEY) === "1";
+    sessionStorage.removeItem(FOXSHOP_NAV_LOADER_KEY);
     if (pending) {
-      showPetRaPetPageLoader();
+      showPetraPetPageLoader();
       loadStartedAt = Date.now();
-      const reveal = () => hidePetRaPetPageLoader(Math.max(120, 360 - (Date.now() - loadStartedAt)));
+      const reveal = () => hidePetraPetPageLoader(Math.max(120, 360 - (Date.now() - loadStartedAt)));
       if (document.readyState === "complete") reveal();
       else window.addEventListener("load", reveal, { once: true });
       setTimeout(reveal, 5200);
     } else {
-      hidePetRaPetPageLoader(0);
+      hidePetraPetPageLoader(0);
     }
   } catch (_) {
-    hidePetRaPetPageLoader(0);
+    hidePetraPetPageLoader(0);
   }
 
   document.addEventListener("click", (event) => {
     if (navigating) return;
     const anchor = event.target && event.target.closest ? event.target.closest("a[href]") : null;
-    if (!isPetRaPetInternalNavigationLink(anchor, event)) return;
+    if (!isPetraPetInternalNavigationLink(anchor, event)) return;
     const url = new URL(anchor.href, window.location.href);
     navigating = true;
-    try { sessionStorage.setItem(PETRAPET_NAV_LOADER_KEY, "1"); } catch (_) {}
+    try { sessionStorage.setItem(FOXSHOP_NAV_LOADER_KEY, "1"); } catch (_) {}
     const mobileMenu = document.getElementById("mobile-menu");
     if (mobileMenu) mobileMenu.classList.add("hidden");
     const cartDrawer = document.getElementById("cart-drawer");
     if (cartDrawer) cartDrawer.classList.add("hidden");
-    showPetRaPetPageLoader();
+    showPetraPetPageLoader();
     event.preventDefault();
     setTimeout(() => { window.location.assign(url.href); }, 45);
   }, true);
 
   window.addEventListener("pageshow", () => {
     navigating = false;
-    try { sessionStorage.removeItem(PETRAPET_NAV_LOADER_KEY); } catch (_) {}
-    hidePetRaPetPageLoader(80);
+    try { sessionStorage.removeItem(FOXSHOP_NAV_LOADER_KEY); } catch (_) {}
+    hidePetraPetPageLoader(80);
   });
 }
 
@@ -728,7 +726,7 @@ function openInstagramProduct(productId) {
   const prod = products.find(p => p.id === productId);
   if (!prod) return;
 
-  const msg = `🐾 سلام و وقت بخیر از سایت PetRaPet\nاستعلام موجودی و سفارش کالا:\n📦 نام کالا: ${prod.name}\n💰 قیمت: ${formatPrice(prod.finalPrice)} تومان`;
+  const msg = `🐾 سلام و وقت بخیر از سایت PetraPet\nاستعلام موجودی و سفارش کالا:\n📦 نام کالا: ${prod.name}\n💰 قیمت: ${formatPrice(prod.finalPrice)} تومان`;
   
   if (navigator.clipboard && navigator.clipboard.writeText) {
     navigator.clipboard.writeText(msg).catch(() => {});
@@ -1019,14 +1017,14 @@ function buildOrderMessageFromForm() {
     }
   }
 
-  return `🐾 سفارش جدید از سایت PetRaPet 🐾\n\n` +
+  return `🐾 سفارش جدید از سایت PetraPet 🐾\n\n` +
     `👤 نام مشتری: ${name}\n` +
     `📞 شماره تماس: ${phone}\n` +
     `📍 آدرس تحویل: ${address}\n\n` +
     `📦 اقلام سفارش:\n${itemsSummary}\n` +
     `💰 مبلغ کل: ${formatPrice(totalPrice)} تومان\n` +
     `📝 توضیحات: ${notes}\n\n` +
-    `با تشکر از پت‌شاپ تخصصی گربه‌ها PetRaPet`;
+    `با تشکر از پت‌شاپ تخصصی گربه‌ها PetraPet`;
 }
 
 function submitRubikaOrder(event) {
@@ -1089,7 +1087,7 @@ function renderAdminPortal() {
           <div class="w-16 h-16 bg-gradient-to-tr from-orange-500 to-amber-400 rounded-2xl mx-auto flex items-center justify-center text-white shadow-lg shadow-orange-500/30 mb-3">
             <i class="fa-solid fa-shield-halved text-2xl"></i>
           </div>
-          <h3 class="text-lg font-black text-slate-800">ورود به مدیریت PetRaPet</h3>
+          <h3 class="text-lg font-black text-slate-800">ورود به مدیریت PetraPet</h3>
           <p class="text-xs text-slate-500 mt-1">سامانه امن مدیریت اختصاصی پت‌شاپ گربه‌ها</p>
         </div>
 
@@ -1154,7 +1152,7 @@ function renderAdminPortal() {
           </div>
           <div>
             <h3 class="text-sm sm:text-base font-black text-slate-800 flex items-center gap-2">
-              <span>پنل مدیریت پیشرفته PetRaPet</span>
+              <span>پنل مدیریت پیشرفته PetraPet</span>
               <span class="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2 py-0.5 rounded-full">احراز هویت شده</span>
             </h3>
             <p class="text-[11px] text-slate-400">مدیریت آنی محصولات و دسته‌بندی‌ها با Cloudflare D1 و تصاویر ذخیره‌شده در دیتابیس آنلاین</p>
@@ -1588,7 +1586,7 @@ function renderAdminTabContent() {
           <div class="p-4 bg-amber-50 border border-amber-200 rounded-2xl">
             <h4 class="font-bold text-xs text-amber-900 mb-1.5 flex items-center gap-1.5">
               <i class="fa-solid fa-rotate-left text-amber-600"></i>
-              <span>بازنشانی به داده‌های پیش‌فرض اولیه PetRaPet</span>
+              <span>بازنشانی به داده‌های پیش‌فرض اولیه PetraPet</span>
             </h4>
             <p class="text-[11px] text-amber-800 mb-3 leading-relaxed">
               در صورت تمایل می‌توانید کاتالوگ را به محصولات و دسته‌بندی‌های استاندارد اولیه بازگردانید.
@@ -2240,7 +2238,7 @@ async function handleAdminLogin(event) {
   try {
     const data = await apiRequest("/admin/login", { method:"POST", body:JSON.stringify({username:usernameInput,password:passInput}) });
     isAdminLoggedIn = true; adminUsername = data.username || usernameInput; applyRemoteStore(data.store);
-    showToast("ورود موفقیت‌آمیز به پنل مدیریت PetRaPet 🐾", "success"); renderAdminPortal();
+    showToast("ورود موفقیت‌آمیز به پنل مدیریت PetraPet 🐾", "success"); renderAdminPortal();
   } catch (err) { showToast(err.message || "نام کاربری یا رمز عبور اشتباه است.", err.status===429 ? "info" : "error"); renderAdminPortal(); }
 }
 
@@ -2370,7 +2368,7 @@ if (typeof window !== "undefined") {
   window.copyTextToClipboard = copyTextToClipboard;
 }
 
-/* PetRaPet Premium Cat UI micro-interactions — visual only */
+/* PetraPet Premium Cat UI micro-interactions — visual only */
 (() => {
   const initPremiumUI = () => {
     try {

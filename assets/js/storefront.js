@@ -1,4 +1,4 @@
-/* PetRaPet storefront enhancements. This file is intentionally additive and keeps the original catalog/cart API intact. */
+/* PetraPet storefront enhancements. This file is intentionally additive and keeps the original catalog/cart API intact. */
 (() => {
   if (window.__PETRAPET_ENHANCED__) return;
   window.__PETRAPET_ENHANCED__ = true;
@@ -7,7 +7,7 @@
   const LS_COMPARE = 'foxshop_compare_v1';
   const LS_RESTOCK = 'foxshop_restock_v1';
   const FREE_SHIPPING_DEFAULT = 3500000;
-  const SHOP_LOCATION = 'ایران';
+  const SHOP_LOCATION = 'تبریز، ایران';
   const INSTAGRAM_URL = 'https://www.instagram.com/petra_petclinic?stkn=MTVmM2Q4ZGhqNjloMw==';
   const RUBIKA_URL = 'https://rubika.ir/petrapet';
 
@@ -235,9 +235,9 @@
     const total = items.reduce((sum, item) => sum + (Number(item.price) || 0) * (Number(item.quantity) || 0), 0);
     const lines = items.map((item, idx) => `${idx + 1}. ${item.name} × ${window.toPersianDigits(item.quantity)} = ${window.formatPrice((Number(item.price) || 0) * (Number(item.quantity) || 0))} تومان`);
     return [
-      '🧾 فاکتور سفارش PetRaPet',
+      '🧾 فاکتور سفارش PetraPet',
       `📅 تاریخ: ${formatDateFa()}`,
-      `📍 فروشگاه: PetRaPet — ${SHOP_LOCATION}`,
+      `📍 فروشگاه: PetraPet — ${SHOP_LOCATION}`,
       '',
       '📦 اقلام سفارش:',
       ...(lines.length ? lines : ['سبد خرید خالی است']),
@@ -289,7 +289,7 @@
       <div class="flex items-center justify-between gap-3"><div><h3 class="font-black text-base text-slate-900">راهنمای ارسال فاکتور</h3><p class="text-[11px] text-slate-400 mt-1">فاکتور همین حالا در کلیپ‌بورد کپی شده است.</p></div><button onclick="document.getElementById('fox-order-guide').classList.add('hidden')" class="w-9 h-9 rounded-xl bg-slate-100 text-slate-500"><i class="fa-solid fa-xmark"></i></button></div>
       <div class="space-y-3 text-xs text-slate-700 leading-relaxed">
         <div class="flex gap-3"><span class="w-7 h-7 rounded-lg bg-orange-50 text-orange-600 flex items-center justify-center font-black">۱</span><p>روی دکمه پایین بزنید تا ${isInsta ? 'دایرکت اینستاگرام' : 'روبیکا'} باز شود.</p></div>
-        <div class="flex gap-3"><span class="w-7 h-7 rounded-lg bg-orange-50 text-orange-600 flex items-center justify-center font-black">۲</span><p>گفت‌وگو با PetRaPet را باز کنید.</p></div>
+        <div class="flex gap-3"><span class="w-7 h-7 rounded-lg bg-orange-50 text-orange-600 flex items-center justify-center font-black">۲</span><p>گفت‌وگو با PetraPet را باز کنید.</p></div>
         <div class="flex gap-3"><span class="w-7 h-7 rounded-lg bg-orange-50 text-orange-600 flex items-center justify-center font-black">۳</span><p>داخل کادر پیام نگه دارید و گزینه «Paste / چسباندن» را بزنید و فاکتور را ارسال کنید.</p></div>
       </div>
       <button onclick="openOrderChannel('${isInsta ? 'instagram' : 'rubika'}')" class="w-full py-3.5 rounded-2xl ${isInsta ? 'bg-gradient-to-r from-pink-500 to-rose-600' : 'bg-gradient-to-r from-purple-600 to-indigo-700'} text-white font-black text-sm shadow">${isInsta ? 'باز کردن اینستاگرام' : 'باز کردن روبیکا'}</button>
@@ -306,14 +306,15 @@
 
   function addOrderButtonsToCart() {
     const footer = document.getElementById('cart-footer-view');
-    if (!footer || footer.querySelector('[data-foxshop-order-tools]')) return;
+    if (!footer || footer.querySelector('[data-petrapet-order-tools]')) return;
     const tools = document.createElement('div');
-    tools.dataset.foxshopOrderTools = '1';
-    tools.className = 'space-y-2';
-    tools.innerHTML = `<div class="rounded-2xl bg-orange-50 border border-orange-100 p-3"><div class="flex items-center justify-between text-[11px] font-bold text-slate-700"><span><i class="fa-solid fa-truck-fast text-orange-600"></i> ارسال رایگان</span><span data-free-shipping-note class="text-orange-700"></span></div><div class="mt-2 h-2 rounded-full bg-white overflow-hidden"><div data-free-shipping-progress class="h-full bg-gradient-to-r from-orange-500 to-amber-400 rounded-full transition-all"></div></div></div>
-      <div class="grid grid-cols-2 gap-2"><button onclick="copyCartItems()" class="py-2.5 rounded-xl bg-slate-100 text-slate-700 font-bold text-[11px]"><i class="fa-solid fa-copy"></i> کپی محصولات</button><button onclick="copyCartInvoice()" class="py-2.5 rounded-xl bg-slate-900 text-white font-bold text-[11px]"><i class="fa-solid fa-file-invoice"></i> کپی فاکتور</button></div>
-      <div class="grid grid-cols-2 gap-2"><button onclick="orderCartBy('rubika')" class="py-3 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-700 text-white font-black text-[11px]"><i class="fa-solid fa-comments"></i> روبیکا + کپی</button><button onclick="orderCartBy('instagram')" class="py-3 rounded-xl bg-gradient-to-r from-pink-500 to-rose-600 text-white font-black text-[11px]"><i class="fa-brands fa-instagram"></i> اینستاگرام + کپی</button></div>
-      <p class="text-[10px] text-slate-400 leading-relaxed">راهنما: با انتخاب هر گزینه، متن کپی می‌شود؛ سپس وارد گفت‌وگوی مقصد شوید و Paste کنید.</p>`;
+    tools.dataset.petrapetOrderTools = '1';
+    tools.className = 'space-y-3';
+    tools.innerHTML = `<div class="rounded-2xl p-3 petra-cart-summary"><div class="flex items-center justify-between text-[11px] font-bold"><span><i class="fa-solid fa-truck-fast"></i> ارسال رایگان</span><span data-free-shipping-note></span></div><div class="mt-2 h-2 rounded-full bg-white overflow-hidden border border-black/10"><div data-free-shipping-progress class="h-full bg-gradient-to-r from-emerald-300 via-sky-300 to-violet-300 rounded-full transition-all"></div></div></div>
+      <div class="grid grid-cols-2 gap-2"><button onclick="copyCartItems()" class="py-2.5 rounded-xl bg-white border-2 border-black font-bold text-[11px]"><i class="fa-solid fa-copy"></i> کپی محصولات</button><button onclick="copyCartInvoice()" class="py-2.5 rounded-xl bg-white border-2 border-black font-bold text-[11px]"><i class="fa-solid fa-file-invoice"></i> کپی فاکتور</button></div>
+      <div class="grid grid-cols-2 gap-2"><button onclick="orderCartBy('rubika')" class="py-3 rounded-xl border-2 border-black bg-[#eee2ff] font-black text-[11px]"><i class="fa-solid fa-comments"></i> روبیکا</button><button onclick="orderCartBy('instagram')" class="py-3 rounded-xl border-2 border-black bg-[#fff1cf] font-black text-[11px]"><i class="fa-brands fa-instagram"></i> اینستاگرام</button></div>
+      <div class="petra-cart-socials" aria-label="ارتباط سریع"><a href="https://wa.me/989960494973" target="_blank" rel="noopener noreferrer">واتساپ</a><a href="https://t.me/petrapetshop" target="_blank" rel="noopener noreferrer">تلگرام</a><a href="https://rubika.ir/petrapet" target="_blank" rel="noopener noreferrer">روبیکا</a><a href="https://www.instagram.com/petra_petclinic?stkn=MTVmM2Q4ZGhqNjloMw==" target="_blank" rel="noopener noreferrer">اینستاگرام</a></div>
+      <p class="text-[10px] leading-relaxed">برای سفارش سریع، یکی از مسیرهای ارتباطی بالا را انتخاب کنید. متن فاکتور نیز قبل از انتقال آماده می‌شود.</p>`;
     footer.appendChild(tools);
   }
 
@@ -573,53 +574,42 @@
 
   function renderProductPage() {
     const root=document.getElementById('product-page-root'); if(!root) return;
-    const rawId = getProductIdFromLocation();
-    let id = '';
-    try { id = decodeURIComponent(String(rawId || '')).trim(); } catch (_) { id = String(rawId || '').trim(); }
-
-    // The public catalog is loaded asynchronously from D1. Never replace the product page
-    // with a false "not found" state before that catalog has arrived. The store-ready event
-    // calls this function again as soon as data becomes available.
-    const storeReady = window.__PETRAPET_STORE_READY__ === true;
-    const catalog = Array.isArray(window.products) ? window.products : [];
-    if (!id || (!storeReady && catalog.length === 0)) {
-      root.innerHTML = '<div class="fox-product-loading"><div class="fox-product-loading-orb"><i class="fa-solid fa-paw"></i></div><h1>در حال آماده‌سازی صفحه محصول…</h1><p>کمی صبر کنید تا اطلاعات فروشگاه بارگذاری شود.</p></div>';
-      return;
+    const rawId=getProductIdFromLocation();
+    let id=''; try{id=decodeURIComponent(String(rawId||'')).trim();}catch(_){id=String(rawId||'').trim();}
+    const storeReady=window.__PETRAPET_STORE_READY__===true;
+    const catalog=Array.isArray(window.products)?window.products:[];
+    if(!id || (!storeReady && catalog.length===0)){
+      root.innerHTML='<div class="petra-product-shell p-10 text-center"><div class="fox-product-loading-orb"><i class="fa-solid fa-paw"></i></div><h1>در حال آماده‌سازی صفحه محصول…</h1><p>اطلاعات محصول در حال بارگذاری است.</p></div>'; return;
     }
-
     const p=getProduct(id);
-    if(!p){ root.innerHTML='<div class="bg-white rounded-3xl p-10 text-center"><h1 class="text-xl font-black">محصول پیدا نشد</h1><p class="text-xs text-slate-500 mt-2">ممکن است محصول حذف شده یا لینک قدیمی باشد.</p><a href="products.html" class="inline-block mt-5 px-5 py-2.5 rounded-xl bg-orange-600 text-white font-bold text-xs">بازگشت به فروشگاه</a></div>'; return; }
-    try {
-    const x=inferredDetails(p); const reviews=Array.isArray(p.reviews)?p.reviews:[];
+    if(!p){root.innerHTML='<div class="petra-product-shell p-10 text-center"><h1>محصول پیدا نشد</h1><p class="mt-2">ممکن است محصول حذف شده یا لینک قدیمی باشد.</p><a href="products.html" class="inline-block mt-5 px-5 py-2.5 rounded-xl bg-[#8bd2ff] border-2 border-black font-black">بازگشت به فروشگاه</a></div>';return;}
+    const x=inferredDetails(p);
     const relatedIds=(x.relatedIds||[]).map(String).filter(v=>v!==String(p.id));
     let related=relatedIds.map(getProduct).filter(Boolean);
     if(!related.length) related=(window.products||[]).filter(q=>q.id!==p.id&&q.categoryId===p.categoryId).slice(0,4);
     const images=[p.image,...(Array.isArray(x.moreImages)?x.moreImages:[])].filter(Boolean).slice(0,8);
     const wished=window.isWishlisted(p.id); const out=p.stockStatus==='out_of_stock';
-    root.innerHTML=`<div class="space-y-6">
-      <div class="flex items-center gap-2 text-[11px] text-slate-400"><a href="index.html" class="hover:text-orange-600">صفحه اصلی</a><i class="fa-solid fa-chevron-left text-[8px]"></i><a href="products.html" class="hover:text-orange-600">محصولات</a><i class="fa-solid fa-chevron-left text-[8px]"></i><span class="text-slate-800 font-bold">${safeText(p.name)}</span></div>
-      <section class="bg-white rounded-3xl border border-orange-100 shadow-sm p-5 sm:p-7"><div class="grid grid-cols-1 lg:grid-cols-2 gap-7">
-        <div><div class="aspect-square rounded-3xl bg-slate-50 border border-slate-200 p-6 flex items-center justify-center"><img id="fox-main-product-image" src="${safeText(images[0]||'')}" alt="${safeText(p.name)}" class="max-h-full max-w-full object-contain"></div><div class="flex gap-2 mt-3 overflow-x-auto">${images.map((img,i)=>`<button onclick="document.getElementById('fox-main-product-image').src='${safeText(img)}'" class="shrink-0 w-16 h-16 rounded-xl bg-slate-50 border ${i===0?'border-orange-400':'border-slate-200'} p-1"><img src="${safeText(img)}" class="w-full h-full object-contain rounded-lg"></button>`).join('')}</div></div>
-        <div class="space-y-4"><div class="flex flex-wrap items-center gap-2"><span class="px-2.5 py-1 rounded-full bg-orange-50 text-orange-700 text-[10px] font-black">${safeText((window.categories||[]).find(c=>c.id===p.categoryId)?.name||'محصول')}</span><span class="px-2.5 py-1 rounded-full ${out?'bg-rose-50 text-rose-700':'bg-emerald-50 text-emerald-700'} text-[10px] font-black">${out?'ناموجود':'موجود'}</span></div>
-          <div class="fox-product-title-row"><h1 class="text-2xl sm:text-3xl font-black text-slate-900 leading-tight min-w-0">${safeText(p.name)}</h1><span class="fox-random-product-sticker" title="استیکر اختصاصی PetRaPet"><img src="assets/images/stickers/${getRandomProductSticker(p.id)[0]}" alt="استیکر گربه PetRaPet - ${getRandomProductSticker(p.id)[1]}" loading="eager" decoding="async"><small>${getRandomProductSticker(p.id)[1]}</small></span></div><p class="text-xs text-slate-500 leading-7">${safeText(p.shortDesc||p.fullDesc||'')}</p>
-          <div class="flex flex-wrap items-center gap-3 text-[10px]">${x.brand?`<span class="bg-slate-50 px-2 py-1 rounded-lg">برند: <b>${safeText(x.brand)}</b></span>`:''}${x.weight?`<span class="bg-slate-50 px-2 py-1 rounded-lg">وزن: <b>${safeText(x.weight)}</b></span>`:''}${x.rating?`<span class="bg-amber-50 text-amber-700 px-2 py-1 rounded-lg">★ ${window.toPersianDigits(x.rating.toFixed(1))} ${x.reviewCount?`(${window.toPersianDigits(x.reviewCount)} نظر)`:''}</span>`:''}</div>
-          <div class="rounded-2xl bg-orange-50 border border-orange-100 p-4"><div class="flex items-end justify-between gap-3"><div>${Number(p.discountPercent)>0?`<div class="text-xs text-slate-400 line-through">${window.formatPrice(p.originalPrice)} تومان</div>`:''}<div class="text-2xl font-black text-slate-900">${window.formatPrice(p.finalPrice)} <span class="text-xs font-normal text-slate-600">تومان</span></div></div><span class="text-[10px] text-slate-500">${safeText(shippingMessage(window.cart?.reduce((s,i)=>s+i.price*i.quantity,0)||0))}</span></div></div>
-          <div class="grid grid-cols-2 gap-2"><button ${out?'disabled':''} onclick="addToCart('${safeText(p.id)}')" class="py-3.5 rounded-2xl ${out?'bg-slate-200 text-slate-400 cursor-not-allowed':'bg-orange-600 text-white hover:bg-orange-700'} font-black text-xs"><i class="fa-solid fa-cart-plus"></i> افزودن به سبد</button><button onclick="toggleWishlist('${safeText(p.id)}',event)" data-wishlist-id="${safeText(p.id)}" class="py-3.5 rounded-2xl ${wished?'bg-rose-50 text-rose-600':'bg-slate-100 text-slate-700'} font-black text-xs"><i class="${wished?'fa-solid':'fa-regular'} fa-heart"></i> علاقه‌مندی</button></div>
-          <div class="grid grid-cols-2 gap-2"><button onclick="toggleCompare('${safeText(p.id)}',event)" class="py-2.5 rounded-xl bg-slate-100 text-slate-700 font-bold text-[11px]"><i class="fa-solid fa-code-compare"></i> مقایسه</button>${out?`<button onclick="toggleRestockAlert('${safeText(p.id)}')" data-restock-id="${safeText(p.id)}" class="py-2.5 rounded-xl bg-slate-100 text-slate-700 font-bold text-[11px]"><i class="fa-regular fa-bell"></i> اطلاع موجودشدن</button>`:`<button onclick="${isConsumable(p)?`repeatPurchase('${safeText(p.id)}')`:`addToCart('${safeText(p.id)}')`}" class="py-2.5 rounded-xl bg-slate-100 text-slate-700 font-bold text-[11px]"><i class="fa-solid fa-rotate"></i> ${isConsumable(p)?'خرید مجدد':'افزودن دوباره'}</button>`}</div>
+    root.innerHTML=`<div class="space-y-7">
+      <div class="flex items-center gap-2 text-[11px]"><a href="index.html">صفحه اصلی</a><i class="fa-solid fa-chevron-left text-[8px]"></i><a href="products.html">محصولات</a><i class="fa-solid fa-chevron-left text-[8px]"></i><span>${safeText(p.name)}</span></div>
+      <section class="petra-product-shell p-4 sm:p-7"><div class="grid grid-cols-1 lg:grid-cols-2 gap-7 items-start">
+        <div><div class="product-gallery-box aspect-square p-5 sm:p-8 flex items-center justify-center"><img id="fox-main-product-image" src="${safeText(images[0]||'')}" alt="${safeText(p.name)}" class="max-h-full max-w-full object-contain"></div><div class="flex gap-2 mt-3 overflow-x-auto">${images.map((img,i)=>`<button type="button" onclick="document.getElementById('fox-main-product-image').src='${safeText(img)}'" class="shrink-0 w-16 h-16 rounded-xl bg-white border-2 border-black p-1"><img src="${safeText(img)}" class="w-full h-full object-contain rounded-lg" alt=""></button>`).join('')}</div></div>
+        <div class="space-y-4"><div class="flex flex-wrap gap-2"><span class="petra-mini-panel px-3 py-1.5 text-[10px] font-black">${safeText((window.categories||[]).find(c=>c.id===p.categoryId)?.name||'محصول')}</span><span class="petra-mini-panel px-3 py-1.5 text-[10px] font-black">${out?'ناموجود':'موجود'}</span></div>
+          <h1 class="text-2xl sm:text-4xl font-black leading-tight">${safeText(p.name)}</h1>
+          <p class="text-sm leading-8">${safeText(p.shortDesc||p.fullDesc||'')}</p>
+          <div class="grid grid-cols-2 gap-2">${x.brand?`<div class="petra-mini-panel p-3 text-xs"><b>برند</b><div class="mt-1">${safeText(x.brand)}</div></div>`:''}${x.weight?`<div class="petra-mini-panel p-3 text-xs"><b>وزن</b><div class="mt-1">${safeText(x.weight)}</div></div>`:''}</div>
+          <div class="petra-mini-panel p-4"><div class="flex items-end justify-between gap-3"><div>${Number(p.discountPercent)>0?`<div class="text-xs line-through">${window.formatPrice(p.originalPrice)} تومان</div>`:''}<div class="text-2xl font-black"><span class="price-text">${window.formatPrice(p.finalPrice)} تومان</span></div></div><span class="text-[10px]">${safeText(shippingMessage(window.cart?.reduce((s,i)=>s+i.price*i.quantity,0)||0))}</span></div></div>
+          <div class="grid grid-cols-2 gap-2"><button ${out?'disabled':''} onclick="addToCart('${safeText(p.id)}')" class="py-3.5 rounded-2xl ${out?'bg-slate-200':'bg-[#72d6bd]'} border-2 border-black font-black text-xs"><i class="fa-solid fa-cart-plus"></i> افزودن به سبد</button><button onclick="toggleWishlist('${safeText(p.id)}',event)" data-wishlist-id="${safeText(p.id)}" class="py-3.5 rounded-2xl ${wished?'bg-[#ff9b9b]':'bg-[#dff5ff]'} border-2 border-black font-black text-xs"><i class="${wished?'fa-solid':'fa-regular'} fa-heart"></i> علاقه‌مندی</button></div>
+          <div class="grid grid-cols-2 gap-2"><button onclick="toggleCompare('${safeText(p.id)}',event)" class="py-3 rounded-xl bg-[#c7a8ff] border-2 border-black font-black text-[11px]"><i class="fa-solid fa-code-compare"></i> مقایسه</button>${out?`<button onclick="toggleRestockAlert('${safeText(p.id)}')" data-restock-id="${safeText(p.id)}" class="py-3 rounded-xl bg-[#ffe58b] border-2 border-black font-black text-[11px]"><i class="fa-regular fa-bell"></i> اطلاع موجودشدن</button>`:`<button onclick="addToCart('${safeText(p.id)}')" class="py-3 rounded-xl bg-[#ffc27d] border-2 border-black font-black text-[11px]"><i class="fa-solid fa-plus"></i> افزودن دوباره</button>`}</div>
+          <div class="petra-contact-strip petra-mini-panel p-4"><b>پشتیبانی و سفارش مستقیم</b><div class="grid grid-cols-2 gap-2 mt-3"><a class="px-3 py-2 rounded-xl bg-[#d8fff2] border-2 border-black text-center font-black" href="https://wa.me/989960494973" target="_blank">واتساپ</a><a class="px-3 py-2 rounded-xl bg-[#dff5ff] border-2 border-black text-center font-black" href="https://t.me/petrapetshop" target="_blank">تلگرام</a><a class="px-3 py-2 rounded-xl bg-[#eee2ff] border-2 border-black text-center font-black" href="https://rubika.ir/petrapet" target="_blank">روبیکا</a><a class="px-3 py-2 rounded-xl bg-[#fff1cf] border-2 border-black text-center font-black" href="https://www.instagram.com/petra_petclinic?stkn=MTVmM2Q4ZGhqNjloMw==" target="_blank">اینستاگرام</a></div></div>
         </div></div></section>
-      <section class="grid grid-cols-1 lg:grid-cols-2 gap-5"><div class="bg-white rounded-3xl border border-slate-200 p-5"><h2 class="font-black text-base mb-3">مشخصات کامل</h2><div>${buildProductSpecRows(p)}</div></div><div class="bg-white rounded-3xl border border-slate-200 p-5"><h2 class="font-black text-base mb-3">ترکیبات و آنالیز تغذیه‌ای</h2><p class="text-xs text-slate-600 leading-7 whitespace-pre-line">${safeText(x.ingredients||'اطلاعات ترکیبات این کالا هنوز توسط فروشگاه تکمیل نشده است.')}</p>${x.nutritionAnalysis?`<div class="mt-4 pt-4 border-t"><h3 class="text-xs font-black mb-2">آنالیز تغذیه‌ای</h3><p class="text-xs text-slate-600 leading-7 whitespace-pre-line">${safeText(x.nutritionAnalysis)}</p></div>`:''}</div></section>
-      <section class="bg-white rounded-3xl border border-slate-200 p-5"><h2 class="text-base font-black mb-3">توضیحات</h2><p class="text-xs text-slate-600 leading-8 whitespace-pre-line">${safeText(p.fullDesc||p.shortDesc||'')}</p></section>
-      <section class="bg-white rounded-3xl border border-slate-200 p-5"><h2 class="text-base font-black mb-4">پرسش‌های متداول</h2>${(Array.isArray(x.faq)&&x.faq.length)?x.faq.map((f,i)=>`<details class="border-b border-slate-100 py-3"><summary class="cursor-pointer font-bold text-xs text-slate-800">${safeText(f.question||f.q||'سؤال متداول')}</summary><p class="text-xs text-slate-500 leading-7 mt-2">${safeText(f.answer||f.a||'')}</p></details>`).join(''):'<p class="text-xs text-slate-400">FAQ این محصول هنوز تکمیل نشده است.</p>'}</section>
-      <section class="fox-review-section"><div class="fox-review-heading"><div><span class="fox-eyebrow">نظر خریداران</span><h2>تجربه‌ات از این محصول را ثبت کن</h2><p>امتیاز و نظر شما بعد از بررسی فروشگاه منتشر می‌شود تا کیفیت نظرات حفظ شود.</p></div><div class="fox-rating-summary"><strong>${x.rating?window.toPersianDigits(x.rating.toFixed(1)):'—'}</strong><span>${x.rating?'★★★★★':'☆ ☆ ☆ ☆ ☆'}</span><small>${x.reviewCount?window.toPersianDigits(x.reviewCount)+' نظر تاییدشده':'هنوز نظری ثبت نشده'}</small></div></div><div class="fox-review-layout"><form id="fox-product-review-form" class="fox-review-form" novalidate><input type="hidden" name="productId" value="${safeText(p.id)}"><input type="hidden" name="rating" value="5"><input type="text" name="website" tabindex="-1" autocomplete="off" class="fox-honeypot" aria-hidden="true"><label><span>نام نمایشی</span><input name="customerName" maxlength="80" required placeholder="مثلاً علی"></label><div><span class="fox-review-label">امتیاز</span><div class="fox-stars" aria-label="انتخاب امتیاز">${renderReviewStars(5)}</div></div><label><span>نظر شما</span><textarea name="reviewText" maxlength="2000" minlength="5" rows="5" required placeholder="چه چیزی درباره این محصول برایت مفید بود؟"></textarea></label><button type="submit" class="fox-review-submit"><i class="fa-solid fa-paper-plane"></i> ثبت نظر و امتیاز</button><div data-review-status class="fox-review-status" aria-live="polite">اطلاعات تماس لازم نیست؛ فقط نام نمایشی و نظر شما ثبت می‌شود.</div></form><div class="fox-approved-reviews">${reviews.length?reviews.map(r=>`<article class="fox-review-card"><div class="fox-review-card-top"><div><b>${safeText(r.customerName||'مشتری')}</b><span>${window.toPersianDigits(new Date(r.createdAt||Date.now()).toLocaleDateString('fa-IR'))}</span></div><div class="fox-review-stars">${'★'.repeat(Math.min(5,Math.max(1,Number(r.rating)||5)))}</div></div><p>${safeText(r.reviewText)}</p></article>`).join(''):'<div class="fox-empty-review"><i class="fa-regular fa-comment-dots"></i><p>هنوز نظر تاییدشده‌ای ثبت نشده است.</p><span>اولین تجربه این محصول می‌تواند برای خریداران بعدی مفید باشد.</span></div>'}</div></div></section>
-      <section class="space-y-4"><div class="flex items-center justify-between"><h2 class="text-base font-black">محصولات مرتبط</h2><a href="products.html" class="text-xs text-orange-600 font-bold">مشاهده فروشگاه</a></div><div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">${related.map(q=>enhancedProductCard(q)).join('')}</div></section>
+      <section class="grid grid-cols-1 lg:grid-cols-2 gap-5"><div class="petra-mini-panel p-5"><h2 class="font-black text-base mb-3">مشخصات کامل</h2><div>${buildProductSpecRows(p)}</div></div><div class="petra-mini-panel p-5"><h2 class="font-black text-base mb-3">ترکیبات و آنالیز تغذیه‌ای</h2><p class="text-xs leading-8 whitespace-pre-line">${safeText(x.ingredients||'اطلاعات ترکیبات این کالا هنوز توسط فروشگاه تکمیل نشده است.')}</p>${x.nutritionAnalysis?`<div class="mt-4 pt-4 border-t-2 border-black/10"><h3 class="text-xs font-black mb-2">آنالیز تغذیه‌ای</h3><p class="text-xs leading-8 whitespace-pre-line">${safeText(x.nutritionAnalysis)}</p></div>`:''}</div></section>
+      <section class="petra-mini-panel p-5"><h2 class="text-base font-black mb-3">توضیحات محصول</h2><p class="text-xs leading-8 whitespace-pre-line">${safeText(p.fullDesc||p.shortDesc||'')}</p></section>
+      <section class="petra-mini-panel p-5"><h2 class="text-base font-black mb-4">پرسش‌های متداول</h2>${(Array.isArray(x.faq)&&x.faq.length)?x.faq.map(f=>`<details><summary class="cursor-pointer font-bold text-xs">${safeText(f.question||f.q||'سؤال متداول')}</summary><p class="text-xs leading-7 mt-2">${safeText(f.answer||f.a||'')}</p></details>`).join(''):'<p class="text-xs">FAQ این محصول هنوز تکمیل نشده است.</p>'}</section>
+      <section class="space-y-4"><div class="flex items-center justify-between"><h2 class="text-base font-black">محصولات مرتبط</h2><a href="products.html" class="font-black text-xs">مشاهده فروشگاه</a></div><div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">${related.map(q=>enhancedProductCard(q)).join('')}</div></section>
     </div>`;
-    updateWishlistUI(); updateRestockButtons(); updateCompareBar(); bindReviewForm();
-    document.title=`${p.name} | PetRaPet`;
-    setMeta('description', (p.shortDesc||p.fullDesc||'').slice(0,155));
-    } catch (error) {
-      console.error('PetRaPet product page render error:', error);
-      root.innerHTML = '<div class="fox-product-error"><div class="fox-product-error-orb"><i class="fa-solid fa-cat"></i></div><h1>نمایش این محصول با خطا روبه‌رو شد</h1><p>اطلاعات محصول کامل بارگذاری نشد. می‌توانید دوباره تلاش کنید.</p><button type="button" onclick="location.reload()">تلاش دوباره</button><a href="products.html">بازگشت به فروشگاه</a></div>';
-    }
+    updateWishlistUI(); updateRestockButtons(); updateCompareBar();
+    document.title=`${p.name} | PetraPet`;
+    setMeta('description',(p.shortDesc||p.fullDesc||'').slice(0,155));
   }
 
   window.repeatPurchase=function(id){
@@ -651,8 +641,12 @@
 
   function injectHeaderLinks(){
     document.querySelectorAll('nav:not(.fox-mobile-bottom-nav)').forEach(nav=>{
-      if(nav.querySelector('[data-foxshop-links]'))return;
-      const wrap=document.createElement('div');wrap.dataset.foxshopLinks='1';wrap.className='hidden xl:flex items-center gap-2 mr-2';wrap.innerHTML='<a href="favorites.html" class="text-[11px] font-bold px-2.5 py-1.5 rounded-xl bg-rose-50 text-rose-700">♥ علاقه‌مندی‌ها <span data-wishlist-count>۰</span></a><a href="compare.html" class="text-[11px] font-bold px-2.5 py-1.5 rounded-xl bg-slate-100 text-slate-700">مقایسه</a><a href="https://wa.me/989960494973" target="_blank" rel="noopener noreferrer" class="text-[11px] font-bold px-2.5 py-1.5 rounded-xl bg-emerald-50 text-emerald-700">واتساپ</a><a href="https://t.me/petrapetshop" target="_blank" rel="noopener noreferrer" class="text-[11px] font-bold px-2.5 py-1.5 rounded-xl bg-sky-50 text-sky-700">تلگرام</a>';nav.appendChild(wrap);
+      if(nav.querySelector('[data-petra-links]')) return;
+      const wrap=document.createElement('div');
+      wrap.dataset.petraLinks='1';
+      wrap.className='hidden xl:flex items-center gap-2 mr-2';
+      wrap.innerHTML='<a href="favorites.html" class="text-[11px] font-bold px-2.5 py-1.5 rounded-xl bg-[#fff1cf] border-2 border-black">♥ علاقه‌مندی‌ها <span data-wishlist-count>۰</span></a><a href="compare.html" class="text-[11px] font-bold px-2.5 py-1.5 rounded-xl bg-[#dff5ff] border-2 border-black">مقایسه</a>';
+      nav.appendChild(wrap);
     });
   }
 
@@ -680,7 +674,7 @@
       thumb.dataset.foxSearchCat='1';
       thumb.className='fox-search-cat-thumb';
       thumb.setAttribute('aria-hidden','true');
-      thumb.innerHTML='<img src="assets/images/petrapet-logo.png" alt="">';
+      thumb.innerHTML='<img src="assets/images/foxshop-cat-search.webp" alt="">';
       actionWrap.insertBefore(thumb, btn);
     }
 
@@ -707,7 +701,7 @@
     let modal=document.getElementById('fox-global-search');
     if(!modal){
       modal=document.createElement('div'); modal.id='fox-global-search'; modal.className='fox-search-modal hidden';
-      modal.innerHTML='<div class="fox-search-dialog" role="dialog" aria-modal="true" aria-label="جستجوی محصول"><button type="button" class="fox-search-close" aria-label="بستن"><i class="fa-solid fa-xmark"></i></button><div class="fox-search-kicker"><span class="fox-search-orb"><i class="fa-solid fa-paw"></i></span><span>جستجوی هوشمند PetRaPet</span></div><h2>دنبال چی می‌گردی؟ 🐾</h2><p>نام، برند، وزن، طعم، دسته، سن یا نیاز گربه را بنویس.</p><form class="fox-search-form"><div class="fox-search-field"><i class="fa-solid fa-magnifying-glass"></i><input id="fox-search-modal-input" autocomplete="off" placeholder="مثلاً رویال کنین، خاک، بچه‌گربه..." /></div><button type="submit" class="fox-search-submit">جستجوی محصولات</button></form><div id="fox-search-live-results" class="fox-search-live-results"></div><div class="fox-search-hints"><button type="button" data-search-hint="غذای بچه‌گربه">بچه‌گربه</button><button type="button" data-search-hint="Royal Canin">Royal Canin</button><button type="button" data-search-hint="خاک گربه">خاک گربه</button><button type="button" data-search-hint="مالت">مالت</button></div></div>';
+      modal.innerHTML='<div class="fox-search-dialog" role="dialog" aria-modal="true" aria-label="جستجوی محصول"><button type="button" class="fox-search-close" aria-label="بستن"><i class="fa-solid fa-xmark"></i></button><div class="fox-search-kicker"><span class="fox-search-orb"><i class="fa-solid fa-paw"></i></span><span>جستجوی هوشمند PetraPet</span></div><h2>دنبال چی می‌گردی؟ 🐾</h2><p>نام، برند، وزن، طعم، دسته، سن یا نیاز گربه را بنویس.</p><form class="fox-search-form"><div class="fox-search-field"><i class="fa-solid fa-magnifying-glass"></i><input id="fox-search-modal-input" autocomplete="off" placeholder="مثلاً رویال کنین، خاک، بچه‌گربه..." /></div><button type="submit" class="fox-search-submit">جستجوی محصولات</button></form><div id="fox-search-live-results" class="fox-search-live-results"></div><div class="fox-search-hints"><button type="button" data-search-hint="غذای بچه‌گربه">بچه‌گربه</button><button type="button" data-search-hint="Royal Canin">Royal Canin</button><button type="button" data-search-hint="خاک گربه">خاک گربه</button><button type="button" data-search-hint="مالت">مالت</button></div></div>';
       document.body.appendChild(modal);
       modal.addEventListener('click',e=>{ if(e.target===modal) closeGlobalSearch(); });
       modal.querySelector('.fox-search-close').addEventListener('click',closeGlobalSearch);
@@ -730,13 +724,20 @@
     if(!q){ host.innerHTML='<div class="fox-search-empty">جستجو را شروع کن تا پیشنهادهای مرتبط نمایش داده شوند ✨</div>'; return; }
     const results=rankProductsForSearch(Array.isArray(window.products)?window.products:[], q).slice(0,5);
     if(!results.length){ host.innerHTML='<div class="fox-search-empty">محصولی با این عبارت پیدا نشد؛ نام برند، طعم یا نیاز گربه را هم امتحان کن.</div>'; return; }
-    host.innerHTML=results.map(p=>`<a class="fox-search-result" href="${productUrl(p)}"><img src="${safeText(p.image||'')}" alt=""><span><b>${safeText(p.name)}</b><small>${safeText(inferredDetails(p).brand || 'PetRaPet')} · ${window.formatPrice(p.finalPrice)} تومان</small></span><i class="fa-solid fa-chevron-left"></i></a>`).join('') + `<button type="button" class="fox-search-all">مشاهده همه نتایج برای «${safeText(q)}»</button>`;
+    host.innerHTML=results.map(p=>`<a class="fox-search-result" href="${productUrl(p)}"><img src="${safeText(p.image||'')}" alt=""><span><b>${safeText(p.name)}</b><small>${safeText(inferredDetails(p).brand || 'PetraPet')} · ${window.formatPrice(p.finalPrice)} تومان</small></span><i class="fa-solid fa-chevron-left"></i></a>`).join('') + `<button type="button" class="fox-search-all">مشاهده همه نتایج برای «${safeText(q)}»</button>`;
     host.querySelector('.fox-search-all')?.addEventListener('click',()=>submitGlobalSearch(q));
   }
 
   function closeGlobalSearch(){
     const modal=document.getElementById('fox-global-search'); if(!modal) return;
     modal.classList.remove('is-open'); setTimeout(()=>modal.classList.add('hidden'),160);
+  }
+
+  function injectPetraSupportLinks(){
+    if(!/\/(contact|about)\.html$/.test(location.pathname)) return;
+    const main=document.querySelector('main'); if(!main || main.querySelector('.petra-social-hub')) return;
+    const box=document.createElement('section'); box.className='petra-social-hub'; box.innerHTML=`<a href="https://wa.me/989960494973" target="_blank" rel="noopener noreferrer"><i class="fa-brands fa-whatsapp"></i><span>واتساپ</span></a><a href="https://t.me/petrapetshop" target="_blank" rel="noopener noreferrer"><i class="fa-brands fa-telegram"></i><span>تلگرام</span></a><a href="https://rubika.ir/petrapet" target="_blank" rel="noopener noreferrer"><i class="fa-solid fa-comments"></i><span>روبیکا</span></a><a href="https://www.instagram.com/petra_petclinic?stkn=MTVmM2Q4ZGhqNjloMw==" target="_blank" rel="noopener noreferrer"><i class="fa-brands fa-instagram"></i><span>اینستاگرام</span></a>`;
+    main.appendChild(box);
   }
 
   function injectTrustFooter(){
@@ -747,44 +748,13 @@
       const trust=document.createElement('section');
       trust.dataset.foxVisibleTrust='1';
       trust.className='fox-trust-footer';
-      trust.innerHTML='<div class="fox-trust-shell" aria-label="اعتماد و اطلاعات فروشگاه"><div class="fox-trust-mini"><span><i class="fa-solid fa-shield-heart"></i> خرید آگاهانه</span><span><i class="fa-solid fa-certificate"></i> اصالت و تاریخ انقضا طبق اطلاعات ثبت‌شده</span><span><i class="fa-solid fa-truck-fast"></i> ارسال از ایران</span><span><i class="fa-solid fa-rotate-left"></i> سیاست مرجوعی شفاف</span></div></div>';
+      trust.innerHTML='<div class="fox-trust-shell" aria-label="اعتماد و اطلاعات فروشگاه"><div class="fox-trust-mini"><span><i class="fa-solid fa-shield-heart"></i> خرید آگاهانه</span><span><i class="fa-solid fa-certificate"></i> اصالت و تاریخ انقضا طبق اطلاعات ثبت‌شده</span><span><i class="fa-solid fa-truck-fast"></i> ارسال از تبریز</span><span><i class="fa-solid fa-rotate-left"></i> سیاست مرجوعی شفاف</span></div></div>';
       footer.parentNode.insertBefore(trust,footer);
     });
   }
 
-  function renderReviewStars(value){
-    const n=Math.min(5,Math.max(1,Number(value)||5));
-    return Array.from({length:5},(_,i)=>`<button type="button" data-review-star="${i+1}" aria-label="${i+1} ستاره" class="fox-star ${i<n?'is-active':''}"><i class="fa-solid fa-star"></i></button>`).join('');
-  }
-
-  function bindReviewForm(){
-    const form=document.getElementById('fox-product-review-form'); if(!form || form.dataset.bound) return;
-    form.dataset.bound='1';
-    const ratingInput=form.querySelector('[name="rating"]');
-    const stars=form.querySelectorAll('[data-review-star]');
-    stars.forEach(btn=>btn.addEventListener('click',()=>{
-      ratingInput.value=btn.dataset.reviewStar;
-      stars.forEach(st=>st.classList.toggle('is-active',Number(st.dataset.reviewStar)<=Number(ratingInput.value)));
-    }));
-    form.addEventListener('submit',async e=>{
-      e.preventDefault();
-      const btn=form.querySelector('button[type="submit"]'); const status=form.querySelector('[data-review-status]');
-      if(btn) btn.disabled=true; if(status){status.textContent='در حال ثبت نظر…';status.className='fox-review-status is-loading';}
-      try{
-        const payload=Object.fromEntries(new FormData(form));
-        payload.productId=String(payload.productId||''); payload.customerName=String(payload.customerName||'').trim(); payload.reviewText=String(payload.reviewText||'').trim(); payload.rating=Number(payload.rating)||5; payload.website=String(payload.website||'');
-        const res=await fetch('/api/review',{method:'POST',headers:{'content-type':'application/json'},credentials:'same-origin',body:JSON.stringify(payload)});
-        const data=await res.json().catch(()=>({}));
-        if(!res.ok || data.ok===false) throw new Error(data.error||`خطا در ثبت نظر (کد ${res.status})`);
-        form.reset(); ratingInput.value='5'; stars.forEach(st=>st.classList.toggle('is-active',Number(st.dataset.reviewStar)<=5));
-        if(status){status.textContent=data.message||'نظر شما ثبت شد و پس از بررسی فروشگاه در صفحه محصول نمایش داده می‌شود.';status.className='fox-review-status is-success';}
-      }catch(err){ if(status){status.textContent=err.message||'ثبت نظر ناموفق بود؛ دوباره تلاش کنید.';status.className='fox-review-status is-error';} }
-      finally{if(btn) btn.disabled=false;}
-    });
-  }
-
   function refreshAfterStoreReady(){
-    patchCartRenderer(); patchRenderers(); patchHomeRenderers(); injectGlobalSearch(); injectTrustFooter();
+    patchCartRenderer(); patchRenderers(); patchHomeRenderers(); injectGlobalSearch(); injectTrustFooter(); injectPetraSupportLinks();
     if (document.getElementById('home-featured-grid') && typeof window.renderHomeFeatured === 'function') window.renderHomeFeatured();
     if (document.getElementById('catalog-products-grid') && typeof window.renderProductsCatalog === 'function') window.renderProductsCatalog();
     const commerce = document.getElementById('fox-home-commerce');
@@ -794,7 +764,7 @@
   }
 
   function initFeatures(){
-    patchCartRenderer(); patchRenderers(); patchHomeRenderers(); injectHeaderLinks(); injectGlobalSearch(); injectTrustFooter(); updateWishlistUI(); updateCompareBar();
+    patchCartRenderer(); patchRenderers(); patchHomeRenderers(); injectHeaderLinks(); injectGlobalSearch(); injectTrustFooter(); injectPetraSupportLinks(); updateWishlistUI(); updateCompareBar();
     const path=location.pathname;
     if (document.getElementById('home-featured-grid') && typeof window.renderHomeFeatured === 'function') window.renderHomeFeatured();
     if (document.getElementById('catalog-products-grid') && typeof window.renderProductsCatalog === 'function') window.renderProductsCatalog();
@@ -802,7 +772,7 @@
     if(document.getElementById('favorites-root')) renderFavoritesPage();
     if(document.getElementById('compare-root')) renderComparePage();
     if(document.getElementById('home-categories-grid')) injectHomeCommerceSections();
-    enhanceCatalogCards(); addTrustToExistingPriceAreas(); addOrderButtonsToCart(); updateShippingUI(); bindReviewForm();
+    enhanceCatalogCards(); addTrustToExistingPriceAreas(); addOrderButtonsToCart(); updateShippingUI();
   }
 
   let foxInitFeaturesQueued = false;
@@ -813,7 +783,7 @@
     foxInitFeaturesQueued = true;
     const run = () => {
       foxInitFeaturesQueued = false;
-      try { initFeatures(); } catch (err) { console.error('PetRaPet feature init error:', err); }
+      try { initFeatures(); } catch (err) { console.error('PetraPet feature init error:', err); }
     };
     if (typeof window.requestIdleCallback === 'function') {
       window.requestIdleCallback(run, { timeout: 120 });
@@ -827,7 +797,7 @@
     foxStoreRefreshQueued = true;
     const run = () => {
       foxStoreRefreshQueued = false;
-      try { refreshAfterStoreReady(); } catch (err) { console.error('PetRaPet store refresh error:', err); }
+      try { refreshAfterStoreReady(); } catch (err) { console.error('PetraPet store refresh error:', err); }
       const liveInput=document.getElementById('fox-search-modal-input');
       if(liveInput) renderGlobalSearchSuggestions(liveInput.value || '');
     };
