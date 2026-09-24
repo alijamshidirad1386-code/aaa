@@ -36,7 +36,7 @@ function contextFor(request, env, executionCtx, params = {}) {
 async function healthHandler(context) {
   return new Response(JSON.stringify({
     ok: true,
-    build: 'petrapet-media-edit-v7',
+    build: 'foxshop-media-edit-v7',
     d1: !!context.env.DB,
     emailProviderConfigured: Boolean(String(context.env.RESEND_API_KEY || '').trim() && String(context.env.AUTH_EMAIL_FROM || '').trim()),
     authPepperConfigured: String(context.env.AUTH_PEPPER || '').trim().length >= 24,
@@ -61,8 +61,8 @@ function escapeHtmlServer(value) {
 function buildProductSeoHtml(product, requestUrl) {
   const origin = new URL(requestUrl).origin;
   const canonical = `${origin}/product/${encodeURIComponent(String(product.id))}`;
-  const title = `${product.name} | PetRaPet`;
-  const description = String(product.shortDesc || product.fullDesc || 'خرید و مشخصات کامل محصول در پت‌شاپ PetRaPet').replace(/\s+/g, ' ').slice(0, 170);
+  const title = `${product.name} | PetraPet`;
+  const description = String(product.shortDesc || product.fullDesc || 'خرید و مشخصات کامل محصول در پت‌شاپ PetraPet تبریز').replace(/\s+/g, ' ').slice(0, 170);
   const image = String(product.image || '');
   const details = product.details || {};
   const schema = {
@@ -170,7 +170,7 @@ export default {
       try {
         return addSecurityHeaders(await route[0](contextFor(request, env, executionCtx, route[1])));
       } catch (error) {
-        console.error('PetRaPet API error:', error);
+        console.error('PetraPet API error:', error);
         const message = String(error?.message || '');
         if (/D1 binding is missing|binding.*DB/i.test(message)) {
           return addSecurityHeaders(bad('اتصال Worker به Cloudflare D1 برقرار نیست. Binding با نام DB را بررسی کنید.', 500));
@@ -200,7 +200,7 @@ export default {
           const hydrated = html.replace(/<head[^>]*>/i, match => `${match}${seoHtml}`);
           return addSecurityHeaders(new Response(hydrated, { status: 200, headers: { 'content-type':'text/html; charset=utf-8', 'cache-control':'no-store' } }));
         } catch (seoError) {
-          console.error('PetRaPet product SEO render error:', seoError);
+          console.error('PetraPet product SEO render error:', seoError);
           return addSecurityHeaders(assetResponse);
         }
       }
@@ -221,7 +221,7 @@ export default {
       } catch (_) {}
     }
 
-    // Everything else is a static PetRaPet file served by Cloudflare Workers Static Assets.
+    // Everything else is a static PetraPet file served by Cloudflare Workers Static Assets.
     const asset = await env.ASSETS.fetch(request);
     const assetHeaders = new Headers(asset.headers);
     if (/\.(?:webp|avif|png|jpe?g|gif|svg|ico|woff2?|ttf)$/i.test(url.pathname)) {
