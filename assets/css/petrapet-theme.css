@@ -1,4 +1,3 @@
-@import url("https://cdn.jsdelivr.net/gh/akiarostami/iransans@main/index.css");
 
 :root{
   --petra-bg:#fffdf8;
@@ -26,7 +25,7 @@ body.cat-paw-pattern{
     radial-gradient(circle at 15% 82%, rgba(255,229,139,.18) 0 10rem, transparent 10.2rem),
     radial-gradient(circle at 84% 82%, rgba(255,155,155,.16) 0 12rem, transparent 12.2rem),
     linear-gradient(180deg,#fffdf8 0%,#f9fffd 55%,#fffaf6 100%)!important;
-  font-family:'Snapp','IRANSans','IRANSansX',Tahoma,Arial,sans-serif!important;
+  font-family:'SnappPetra','Snapp','IRANSans','IRANSansX',Tahoma,Arial,sans-serif!important;
 }
 body::before,body::after{display:none!important}
 ::selection{background:#17232b!important;color:#fff!important}

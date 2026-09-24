@@ -1,0 +1,175 @@
+/* PetraPet UI v3 — distinct storefront shell, same seven-color palette. */
+@font-face{
+  font-family:'SnappPetra';
+  src:url('../fonts/Snapp.ttf') format('truetype');
+  font-style:normal;
+  font-weight:100 900;
+  font-display:swap;
+}
+:root{
+  --pp-ink:#141b22;
+  --pp-paper:#fffefb;
+  --pp-soft:#f7fbfb;
+  --pp-jade:#72d6bd;
+  --pp-turq:#6fe1dd;
+  --pp-blue:#8bd2ff;
+  --pp-red:#ff9b9b;
+  --pp-orange:#ffc27d;
+  --pp-purple:#c7a8ff;
+  --pp-yellow:#ffe58b;
+  --pp-line:2px solid var(--pp-ink);
+  --pp-radius:24px;
+}
+html,body{background:#f7fbfa!important;color:var(--pp-ink)!important}
+body,button,input,textarea,select{font-family:'SnappPetra','Snapp','IRANSans','IRANSansX',Tahoma,Arial,sans-serif!important}
+/* Text uses colored fills with a small black glyph outline; no black text backgrounds. */
+[data-petra-rainbow]{
+  color:var(--petra-color,#8bd2ff)!important;
+  -webkit-text-stroke:.62px #0f1720!important;
+  paint-order:stroke fill;
+  text-shadow:none!important;
+  background-color:transparent!important;
+}
+[data-petra-rainbow]::selection{background:#111923!important;color:#fff!important}
+/* Kill legacy dark text blocks, while keeping actual cards/panels light. */
+.text-white,[class~="text-white"]{color:var(--petra-color,#72d6bd)!important}
+.bg-slate-950,.bg-slate-900{background:#ffffff!important;color:var(--petra-color,#72d6bd)!important}
+/* Top announcement rail */
+body>div:first-child{
+  background:linear-gradient(90deg,var(--pp-jade),var(--pp-blue),var(--pp-yellow),var(--pp-orange),var(--pp-red),var(--pp-purple),var(--pp-turq))!important;
+  color:var(--pp-ink)!important;
+  border-bottom:var(--pp-line)!important;
+  letter-spacing:.01em;
+}
+body>div:first-child *{color:var(--pp-ink)!important;-webkit-text-stroke:.35px #0f1720!important}
+/* Header */
+header.sticky,.glass-nav{
+  background:rgba(255,255,255,.96)!important;
+  box-shadow:none!important;
+  border-bottom:var(--pp-line)!important;
+  backdrop-filter:blur(12px)!important;
+}
+header.sticky::after{
+  content:"";display:block;height:7px;margin:0 -1px;
+  background:linear-gradient(90deg,var(--pp-yellow) 0 14.28%,var(--pp-orange) 14.28% 28.56%,var(--pp-jade) 28.56% 42.84%,var(--pp-blue) 42.84% 57.12%,var(--pp-red) 57.12% 71.4%,var(--pp-purple) 71.4% 85.68%,var(--pp-turq) 85.68% 100%);
+  border-top:1px solid #0f1720;
+}
+.brand-logo-trigger>div{
+  background:linear-gradient(145deg,#fff,var(--pp-yellow))!important;
+  border:var(--pp-line)!important;
+  border-radius:18px!important;
+  box-shadow:5px 5px 0 #101820!important;
+}
+.brand-logo-trigger img{background:transparent!important}
+/* Page width / rhythm */
+main{position:relative!important}
+main>.space-y-14,main>.space-y-12,main>.space-y-10{gap:2.25rem!important}
+main .bg-white,main .glass-card,.fox-filter-shell,#products-page-root>div,#favorites-root>div,#compare-root>div{
+  background:rgba(255,255,255,.985)!important;
+  border:var(--pp-line)!important;
+  border-radius:var(--pp-radius)!important;
+  box-shadow:7px 7px 0 rgba(20,27,34,.08)!important;
+}
+/* New asymmetric hero */
+#home-hero-premium,.petra-hero{
+  min-height:490px!important;
+  border:var(--pp-line)!important;
+  border-radius:22px 48px 26px 56px!important;
+  box-shadow:10px 10px 0 #101820!important;
+  background:
+    radial-gradient(circle at 88% 18%,rgba(255,255,255,.75) 0 7rem,transparent 7.2rem),
+    radial-gradient(circle at 9% 86%,rgba(255,255,255,.48) 0 6rem,transparent 6.2rem),
+    linear-gradient(120deg,var(--pp-yellow) 0 16%,var(--pp-jade) 16% 32%,var(--pp-blue) 32% 50%,var(--pp-purple) 50% 67%,var(--pp-orange) 67% 84%,var(--pp-red) 84% 100%)!important;
+}
+#home-hero-premium::before{
+  content:""!important;position:absolute;inset:auto -4% -24% 34%;width:60%;height:60%;
+  border:var(--pp-line);border-radius:50% 35% 55% 40%;background:rgba(255,255,255,.28);transform:rotate(-10deg);z-index:0;
+}
+#home-hero-premium::after{
+  content:"🐾"!important;display:flex;align-items:center;justify-content:center;position:absolute;right:2%;top:4%;width:84px;height:84px;border:var(--pp-line);border-radius:24px;background:rgba(255,255,255,.72);font-size:42px;z-index:0;box-shadow:4px 4px 0 #101820;
+}
+#home-hero-premium h1{font-size:clamp(2.1rem,4.7vw,4.35rem)!important;letter-spacing:-.035em!important}
+#home-hero-premium p{font-weight:800!important;color:#13202a!important;max-width:720px}
+#home-hero-premium .fox-hero-brand-card>div{
+  border:var(--pp-line)!important;border-radius:55% 45% 50% 40%!important;background:rgba(255,255,255,.72)!important;box-shadow:9px 9px 0 #101820!important;transform:rotate(2deg);
+}
+#home-hero-premium .fox-hero-brand-card>div>div:first-child{background:#fff!important;border:var(--pp-line)!important;border-radius:34px!important}
+#home-hero-premium a.rounded-2xl{border:var(--pp-line)!important;box-shadow:4px 4px 0 #101820!important}
+/* Section headings become colorful label bars */
+main h2,main h3{letter-spacing:-.02em}
+main h2{display:inline-block;padding:.2rem .7rem;border:var(--pp-line);border-radius:12px;background:linear-gradient(90deg,var(--pp-jade),var(--pp-blue));box-shadow:4px 4px 0 rgba(20,27,34,.08)}
+/* Category tiles */
+#home-categories-grid>a,#home-categories-container>a,#category-pills-container>*{
+  border:var(--pp-line)!important;border-radius:18px!important;box-shadow:5px 5px 0 #101820!important;
+  color:var(--pp-ink)!important;transition:transform .18s ease,box-shadow .18s ease!important;
+}
+#home-categories-grid>a:hover,#home-categories-container>a:hover,#category-pills-container>*:hover{transform:translate(-2px,-3px)!important;box-shadow:8px 8px 0 #101820!important}
+#home-categories-grid>a:nth-child(7n+1){background:var(--pp-jade)!important}
+#home-categories-grid>a:nth-child(7n+2){background:var(--pp-turq)!important}
+#home-categories-grid>a:nth-child(7n+3){background:var(--pp-blue)!important}
+#home-categories-grid>a:nth-child(7n+4){background:var(--pp-red)!important}
+#home-categories-grid>a:nth-child(7n+5){background:var(--pp-orange)!important}
+#home-categories-grid>a:nth-child(7n+6){background:var(--pp-purple)!important}
+#home-categories-grid>a:nth-child(7n){background:var(--pp-yellow)!important}
+/* Product cards: flat storefront tiles, not FoxShop/glass */
+.product-card-item,#home-featured-grid>div,#home-bestseller-grid>div,#catalog-products-grid>div{
+  border:var(--pp-line)!important;border-radius:20px!important;background:#fff!important;box-shadow:6px 6px 0 #101820!important;overflow:hidden!important;
+}
+.product-card-item:hover,#home-featured-grid>div:hover,#home-bestseller-grid>div:hover,#catalog-products-grid>div:hover{transform:translateY(-5px)!important;box-shadow:10px 10px 0 #101820!important}
+.product-img-box,.product-card-item>a.aspect-square,#home-featured-grid .aspect-square,#catalog-products-grid .aspect-square{
+  background:linear-gradient(135deg,var(--pp-blue),var(--pp-jade) 35%,var(--pp-yellow) 68%,var(--pp-purple))!important;
+  border-bottom:var(--pp-line)!important;min-height:205px!important;
+}
+.product-img-box img,.product-card-item img,#home-featured-grid img,#catalog-products-grid img{background:transparent!important;mix-blend-mode:multiply}
+.product-info-box,.product-card-item>.p-5{background:#fff!important}
+.price-text{background:var(--pp-yellow)!important;color:#111!important;border:var(--pp-line)!important;border-radius:10px!important;padding:.2rem .45rem!important;-webkit-text-stroke:.35px #111!important}
+/* Product page distinct layout */
+#product-page-root>.space-y-6>section:first-of-type,#product-page-root .petra-product-shell{
+  background:linear-gradient(145deg,#fff,var(--pp-blue) 26%,#fff 48%,var(--pp-yellow) 73%,#fff)!important;
+  border:var(--pp-line)!important;border-radius:26px 54px 26px 54px!important;box-shadow:10px 10px 0 #101820!important;
+}
+#product-page-root .product-gallery-box{background:linear-gradient(135deg,var(--pp-turq),var(--pp-blue),var(--pp-purple))!important;border:var(--pp-line)!important;border-radius:32px!important}
+#product-page-root .petra-mini-panel{background:#fff!important;border:var(--pp-line)!important;border-radius:18px!important;box-shadow:5px 5px 0 rgba(20,27,34,.08)!important}
+#product-page-root details{background:#fff!important;border:var(--pp-line)!important;border-radius:14px!important}
+/* Cart drawer: four unique contact actions, no duplicate rows */
+#cart-drawer{background:rgba(20,27,34,.22)!important}
+#cart-drawer>div{background:#fffefb!important;border-left:var(--pp-line)!important;border-radius:28px 0 0 28px!important;box-shadow:-12px 0 0 #101820!important}
+#cart-items-container>div{background:#fff!important;border:var(--pp-line)!important;border-radius:18px!important;box-shadow:4px 4px 0 rgba(20,27,34,.06)!important}
+.petra-cart-socials{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:10px!important;margin-top:12px!important}
+.petra-cart-socials a,.petra-cart-order-action{border:var(--pp-line)!important;border-radius:14px!important;padding:11px!important;text-align:center!important;font-weight:900!important;text-decoration:none!important;box-shadow:4px 4px 0 #101820!important;color:var(--pp-ink)!important;background:#fff!important}
+.petra-cart-socials a:nth-child(1){background:var(--pp-jade)!important}
+.petra-cart-socials a:nth-child(2){background:var(--pp-blue)!important}
+.petra-cart-socials a:nth-child(3){background:var(--pp-yellow)!important}
+.petra-cart-socials a:nth-child(4){background:var(--pp-purple)!important}
+/* Footer/bottom callout gets the hero treatment, but with diagonal bands */
+main>.petra-order-banner,main>div[class*="from-purple-700"]{
+  border:var(--pp-line)!important;border-radius:26px 54px 26px 54px!important;box-shadow:10px 10px 0 #101820!important;
+  background:linear-gradient(115deg,var(--pp-jade) 0 16%,var(--pp-blue) 16% 31%,var(--pp-yellow) 31% 46%,var(--pp-orange) 46% 61%,var(--pp-red) 61% 76%,var(--pp-purple) 76% 88%,var(--pp-turq) 88% 100%)!important;
+}
+footer,.petra-footer{background:linear-gradient(120deg,#fff 0 14%,var(--pp-yellow) 14% 28%,#fff 28% 42%,var(--pp-blue) 42% 56%,#fff 56% 70%,var(--pp-jade) 70% 84%,#fff 84% 100%)!important;color:var(--pp-ink)!important;border-top:var(--pp-line)!important;box-shadow:0 -8px 0 rgba(20,27,34,.06)!important}
+footer .text-slate-400,footer .text-slate-500{color:#17232b!important}
+/* Mobile nav as a colorful floating control */
+.fox-mobile-bottom-nav{background:#fff!important;border:var(--pp-line)!important;border-radius:20px!important;box-shadow:6px 6px 0 #101820!important}
+.fox-bottom-nav-icon{border:var(--pp-line)!important;border-radius:12px!important;background:var(--pp-blue)!important}
+.fox-bottom-nav-item:nth-child(2) .fox-bottom-nav-icon{background:var(--pp-jade)!important}
+.fox-bottom-nav-item:nth-child(3) .fox-bottom-nav-icon{background:var(--pp-yellow)!important}
+.fox-bottom-nav-item:nth-child(4) .fox-bottom-nav-icon{background:var(--pp-purple)!important}
+/* Loader: light, local-brand card */
+#fox-global-page-loader{background:rgba(247,251,250,.96)!important;z-index:99999!important}
+#fox-global-page-loader .fox-global-loader-card{background:#fff!important;border:var(--pp-line)!important;border-radius:26px!important;box-shadow:8px 8px 0 #101820!important;padding:24px!important}
+#fox-global-page-loader .fox-global-loader-logo{background:linear-gradient(135deg,var(--pp-yellow),var(--pp-blue),var(--pp-jade))!important;border:var(--pp-line)!important;border-radius:22px!important;box-shadow:5px 5px 0 #101820!important}
+#fox-global-page-loader .fox-global-loader-logo img{background:transparent!important}
+#fox-global-page-loader .fox-global-loader-spinner{border-color:#0f1720 transparent #0f1720 transparent!important}
+#fox-global-page-loader .fox-global-loader-title{color:var(--pp-purple)!important;-webkit-text-stroke:.6px #111!important}
+#fox-global-page-loader .fox-global-loader-subtitle{color:var(--pp-blue)!important;-webkit-text-stroke:.45px #111!important}
+/* Never hide behind a dark photo background. */
+img{background:transparent}
+@media(max-width:900px){
+  #home-hero-premium{min-height:auto!important;border-radius:20px 36px 22px 42px!important}
+  #home-hero-premium::after{width:64px;height:64px;font-size:30px}
+}
+@media(max-width:640px){
+  #home-hero-premium{padding:18px!important;box-shadow:6px 6px 0 #101820!important}
+  #home-hero-premium h1{font-size:2rem!important}
+  .petra-cart-socials{grid-template-columns:1fr 1fr!important}
+}
