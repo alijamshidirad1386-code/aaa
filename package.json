@@ -1,0 +1,13 @@
+{
+  "name": "petrapet",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "deploy": "wrangler deploy"
+  },
+  "devDependencies": {
+    "wrangler": "4.133.0"
+  },
+  "type": "module",
+  "packageManager": "bun@1.2.15"
+}

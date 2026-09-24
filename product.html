@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>محصول | PetRaPet</title>
+  <meta name="description" content="مشخصات، قیمت و اطلاعات کامل محصول در پت‌شاپ PetRaPet">
+  <meta name="robots" content="index,follow,max-image-preview:large">
+  <meta property="og:type" content="product">
+  <meta property="og:site_name" content="PetRaPet">
+  <meta property="og:title" content="محصول | PetRaPet">
+  <meta property="og:description" content="مشخصات، قیمت و اطلاعات کامل محصول در پت‌شاپ PetRaPet">
+  <meta property="og:image" content="">
+  <link rel="stylesheet" href="assets/css/style.css">
+  <link rel="stylesheet" href="assets/css/foxshop-upgrades.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script src="https://cdn.tailwindcss.com" defer></script>
+  <link rel="stylesheet" href="assets/css/petrapet-theme.css">
+</head>
+<body class="paw-bg cat-paw-pattern min-h-screen flex flex-col antialiased selection:bg-orange-500 selection:text-white">
+  <div class="bg-gradient-to-r from-orange-600 via-amber-500 to-orange-600 text-white text-xs py-1.5 px-4 text-center font-bold">پت‌شاپ PetRaPet • ارسال و سفارش مستقیم</div>
+  <header class="sticky top-0 z-40 glass-nav border-b border-orange-100/80 shadow-sm">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between gap-3">
+      <a href="index.html" class="flex items-center gap-3"><span class="w-14 h-14 rounded-2xl bg-[#111318] border-2 border-[#111318] p-2 flex items-center justify-center"><img src="assets/images/petrapet-logo.png" alt="لوگوی PetRaPet" class="w-full h-full object-contain"></span><span><b class="text-xl font-black text-slate-900">PetRaPet</b><small class="block text-[10px] text-slate-400">پت‌شاپ آنلاین • سفارش سریع</small></span></a>
+      <div class="flex items-center gap-2"><a href="products.html" class="hidden sm:inline-flex px-3 py-2 rounded-xl bg-orange-50 text-orange-700 text-[11px] font-bold">فروشگاه</a><a href="favorites.html" class="hidden sm:inline-flex px-3 py-2 rounded-xl bg-rose-50 text-rose-700 text-[11px] font-bold">♥ علاقه‌مندی</a><button id="cart-trigger-btn" class="relative p-2.5 rounded-xl hover:bg-orange-50 text-slate-700"><i class="fa-solid fa-cart-shopping text-xl"></i><span class="cart-count-badge absolute -top-1 -right-1 w-5 h-5 bg-orange-600 text-white text-[10px] rounded-full hidden items-center justify-center">۰</span></button></div>
+    </div>
+  </header>
+  <main class="flex-1 w-full max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6" id="product-page-root">
+    <div class="fox-product-loading" aria-live="polite">
+      <div class="fox-product-loading-orb"><i class="fa-solid fa-paw"></i></div>
+      <h1>در حال آماده‌سازی صفحه محصول…</h1>
+      <p>اطلاعات محصول در حال بارگذاری است.</p>
+    </div>
+  </main>
+
+  <div id="cart-drawer" class="fixed inset-0 z-[60] bg-slate-950/60 backdrop-blur-sm hidden">
+    <div class="absolute inset-y-0 left-0 max-w-md w-full bg-white p-6 flex flex-col shadow-2xl">
+      <div class="flex items-center justify-between pb-4 border-b"><h2 class="font-black text-base">سبد خرید</h2><button id="close-cart-btn" class="w-9 h-9 rounded-xl bg-slate-100 text-slate-500"><i class="fa-solid fa-xmark"></i></button></div>
+      <div id="cart-items-container" class="flex-1 overflow-y-auto py-4 space-y-3"></div>
+      <div id="cart-empty-view" class="flex-1 items-center justify-center text-center hidden"><div><i class="fa-solid fa-cat text-4xl text-orange-300"></i><p class="font-bold text-sm mt-3">سبد خرید خالی است</p></div></div>
+      <div id="cart-footer-view" class="pt-4 border-t space-y-3 hidden"><div class="flex justify-between text-sm"><b>مجموع:</b><span><b id="cart-total-amount">۰</b> تومان</span></div></div>
+    </div>
+  </div>
+
+  <div class="max-w-7xl mx-auto px-4 pb-8 text-center text-[11px] text-slate-400">PetRaPet — ایران • سفارش از طریق دایرکت اینستاگرام یا روبیکا</div>
+  <script src="assets/js/products-data.js"></script>
+  <script src="assets/js/main.js"></script>
+  <script>
+    function initPage() { /* storefront.js wraps this function after the product catalog is loaded */ }
+  </script>
+  <script src="assets/js/storefront.js"></script><script src="assets/js/foxshop-upgrades.js"></script>
+</body>
+</html>

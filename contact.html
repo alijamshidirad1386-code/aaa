@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="canonical" href="//contact.html">
+  <meta property="og:type" content="website">
+  <meta name="robots" content="index,follow,max-image-preview:large">
+<title>تماس و ثبت سفارش | پت شاپ تخصصی گربه‌ها PetRaPet</title>
+  <meta name="description" content="ارتباط مستقیم، مشاوره تغذیه گربه و ثبت سفارش در روبیکا و اینستاگرام با پت‌شاپ PetRaPet">
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com" defer></script>
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Custom Stylesheet -->
+  <link rel="stylesheet" href="assets/css/style.css">
+  <link rel="stylesheet" href="assets/css/foxshop-upgrades.css">
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Vazirmatn', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              50: '#fff7ed',
+              100: '#ffedd5',
+              200: '#fed7aa',
+              300: '#fdba74',
+              400: '#fb923c',
+              500: '#f97316',
+              600: '#ea580c',
+              700: '#c2410c',
+              800: '#9a3412',
+              900: '#7c2d12',
+              dark: '#0f172a'
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <link rel="stylesheet" href="assets/css/petrapet-theme.css">
+  <link rel="icon" type="image/png" href="assets/images/petrapet-logo.png">
+</head>
+<body class="paw-bg cat-paw-pattern min-h-screen flex flex-col antialiased selection:bg-orange-500 selection:text-white">
+
+  <!-- Announcement Bar -->
+  <div class="bg-gradient-to-r from-orange-600 via-amber-500 to-orange-600 text-white text-xs py-1.5 px-4 text-center font-medium shadow-inner flex items-center justify-center gap-3">
+    <span><i class="fa-solid fa-headset text-amber-200"></i> پشتیبانی تلفنی، روبیکا و اینستاگرام روزهای کاری از ساعت ۱۰:۰۰ الی ۲۱:۰۰</span>
+    <span class="hidden md:inline text-white/60">|</span>
+    <a href="tel:+989960494973" class="hover:underline text-white font-semibold">
+      <i class="fa-solid fa-phone text-[10px]"></i> ۰۹۹۶۰۴۹۴۹۷۳
+    </a>
+  </div>
+
+  <!-- Header -->
+  <header class="sticky top-0 z-40 glass-nav border-b border-orange-100/80 shadow-sm">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-20 gap-4">
+        
+        <div class="flex items-center gap-2 lg:hidden">
+          <button id="mobile-menu-btn" class="p-2.5 text-slate-700 hover:text-orange-600 hover:bg-orange-50 rounded-xl transition">
+            <i class="fa-solid fa-bars-staggered text-xl"></i>
+          </button>
+        </div>
+
+        <div class="flex items-center gap-3">
+          <div class="brand-logo-trigger relative group cursor-pointer select-none" title="PetRaPet - پت‌شاپ تخصصی گربه‌ها">
+            <div class="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-br from-amber-50 to-orange-100/70 p-1.5 border border-orange-200/80 shadow-md group-hover:shadow-lg group-hover:border-orange-400 transition-all flex items-center justify-center overflow-hidden">
+              <img src="assets/images/petrapet-logo.png" alt="PetRaPet Logo" class="w-full h-full object-contain">
+            </div>
+          </div>
+
+          <div class="flex flex-col">
+            <a href="index.html" class="flex items-center gap-1.5">
+              <span class="text-xl sm:text-2xl font-black tracking-tight text-slate-900">Pet<span class="text-orange-600">RaPet</span></span>
+              <span class="text-[10px] bg-orange-100 text-orange-700 font-bold px-1.5 py-0.5 rounded-md">پت‌شاپ تخصصی</span>
+            </a>
+            <span class="text-xs text-slate-500 font-medium">پت‌شاپ گربه‌ها • PetRaPet</span>
+          </div>
+        </div>
+
+        <nav class="hidden lg:flex items-center gap-7 text-sm font-semibold text-slate-700">
+          <a href="index.html" class="hover:text-orange-600 transition flex items-center gap-1.5">
+            <i class="fa-solid fa-house text-sm"></i>
+            <span>صفحه اصلی</span>
+          </a>
+          <a href="products.html" class="hover:text-orange-600 transition flex items-center gap-1.5">
+            <i class="fa-solid fa-bag-shopping text-sm"></i>
+            <span>فروشگاه و محصولات</span>
+          </a>
+          <a href="about.html" class="hover:text-orange-600 transition flex items-center gap-1.5">
+            <i class="fa-solid fa-circle-info text-sm"></i>
+            <span>درباره PetRaPet</span>
+          </a>
+          <a href="contact.html" class="text-orange-600 font-bold flex items-center gap-1.5">
+            <i class="fa-solid fa-headset text-sm"></i>
+            <span>تماس و سفارش</span>
+          </a>
+        </nav>
+
+        <div class="flex items-center gap-2 sm:gap-3">
+          <a href="https://rubika.ir/petrapet" target="_blank" class="hidden sm:inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-gradient-to-r from-purple-600 via-purple-700 to-indigo-700 text-white text-xs font-bold shadow-md hover:brightness-105 transition">
+            <i class="fa-solid fa-comments text-base"></i>
+            <span class="hidden lg:inline">روبیکا</span>
+          </a>
+          <a href="https://www.instagram.com/petra_petclinic?stkn=MTVmM2Q4ZGhqNjloMw==" target="_blank" class="hidden sm:inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-gradient-to-r from-pink-500 via-rose-500 to-amber-500 text-white text-xs font-bold shadow-md hover:brightness-105 transition">
+            <i class="fa-brands fa-instagram text-base"></i>
+            <span class="hidden lg:inline">اینستاگرام</span>
+          </a>
+          <a href="products.html" class="fox-static-search-link" aria-label="جستجوی محصولات" title="جستجوی محصولات"><i class="fa-solid fa-magnifying-glass"></i></a>
+          <button id="cart-trigger-btn" class="relative p-2.5 text-slate-700 hover:text-orange-600 rounded-xl hover:bg-orange-50 transition">
+            <i class="fa-solid fa-cart-shopping text-xl"></i>
+            <span class="cart-count-badge absolute -top-1 -right-1 w-5 h-5 bg-orange-600 text-white text-[11px] font-black rounded-full flex items-center justify-center shadow-md hidden">۰</span>
+          </button>
+        </div>
+
+      </div>
+    </div>
+  </header>
+
+  <!-- Mobile Drawer -->
+  <div id="mobile-menu" class="lg:hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden transition-all">
+    <div class="w-4/5 max-w-sm bg-white h-full p-6 flex flex-col justify-between shadow-2xl overflow-y-auto">
+      <div>
+        <div class="flex items-center justify-between pb-5 border-b">
+          <span class="font-bold text-slate-800 text-base">منوی فروشگاه PetRaPet</span>
+          <button id="close-mobile-menu" class="p-2 text-slate-400 hover:text-slate-600 rounded-lg">
+            <i class="fa-solid fa-xmark text-lg"></i>
+          </button>
+        </div>
+        <div class="flex flex-col gap-2 font-semibold text-sm text-slate-700 mt-6">
+          <a href="index.html" class="p-3 rounded-xl hover:bg-orange-50 flex items-center gap-3">
+            <i class="fa-solid fa-house w-5 text-orange-500"></i> صفحه اصلی
+          </a>
+          <a href="products.html" class="p-3 rounded-xl hover:bg-orange-50 flex items-center gap-3">
+            <i class="fa-solid fa-bag-shopping w-5 text-orange-500"></i> ویترین و محصولات
+          </a>
+          <a href="about.html" class="p-3 rounded-xl hover:bg-orange-50 flex items-center gap-3">
+            <i class="fa-solid fa-circle-info w-5 text-orange-500"></i> درباره ما
+          </a>
+          <a href="contact.html" class="p-3 rounded-xl bg-orange-50 text-orange-600 flex items-center gap-3">
+            <i class="fa-solid fa-headset w-5 text-orange-500"></i> تماس و ثبت سفارش
+          </a>
+          <button onclick="openAdminPortalModal(); toggleMobileMenu();" class="p-3 rounded-xl hover:bg-orange-50 text-slate-500 hover:text-orange-600 flex items-center gap-3 text-right w-full font-semibold text-sm">
+            <i class="fa-solid fa-shield-halved w-5 text-slate-400"></i> پنل مدیریت فروشگاه
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN CONTACT CONTENT -->
+  <main class="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-12">
+    
+    <!-- Top Header -->
+    <div class="bg-white rounded-3xl border border-orange-100 p-6 sm:p-10 shadow-sm flex flex-col md:flex-row items-center justify-between gap-6">
+      <div class="space-y-2">
+        <div class="flex items-center gap-2 text-xs text-slate-400 mb-1">
+          <a href="index.html" class="hover:text-orange-600">صفحه اصلی</a>
+          <i class="fa-solid fa-chevron-left text-[9px]"></i>
+          <span class="text-slate-800 font-bold">تماس و سفارش</span>
+        </div>
+        <h1 class="text-2xl sm:text-3xl font-black text-slate-900">سفارش مستقیم و ارتباط با PetRaPet</h1>
+        <p class="text-xs sm:text-sm text-slate-500 max-w-xl">
+          شما می‌توانید فرم زیر را پر کنید تا متن فاکتور آماده شده و مستقیماً به روبیکا یا اینستاگرام هدایت شوید، یا از طریق شماره تلفن با ما تماس بگیرید.
+        </p>
+      </div>
+
+      <div class="flex items-center gap-3">
+        <a href="tel:+989960494973" class="px-5 py-3 rounded-2xl bg-orange-600 hover:bg-orange-700 text-white font-bold text-xs shadow transition flex items-center gap-2">
+          <i class="fa-solid fa-phone"></i>
+          <span>۰۹۹۶۰۴۹۴۹۷۳</span>
+        </a>
+        <a href="https://rubika.ir/petrapet" target="_blank" class="px-5 py-3 rounded-2xl bg-gradient-to-r from-purple-600 to-indigo-700 hover:brightness-105 text-white font-bold text-xs shadow transition flex items-center gap-2">
+          <i class="fa-solid fa-comments text-base"></i>
+          <span>@petrapet</span>
+        </a>
+      </div>
+    </div>
+
+    <!-- Contact Cards Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <!-- Phone Support -->
+      <div class="bg-white p-6 rounded-3xl border border-orange-100 shadow-sm text-center space-y-3 hover:shadow-md transition">
+        <div class="w-14 h-14 mx-auto rounded-2xl bg-orange-50 text-orange-600 flex items-center justify-center text-2xl">
+          <i class="fa-solid fa-phone-volume"></i>
+        </div>
+        <h3 class="font-bold text-slate-800 text-base">تماس تلفنی با فروشگاه</h3>
+        <p class="text-xs text-slate-500">پاسخگویی، مشاوره تخصصی و ثبت سفارش</p>
+        <a href="tel:+989960494973" class="block text-sm sm:text-base font-black text-orange-600 hover:underline" dir="ltr">
+          +98 996 049 4973
+        </a>
+      </div>
+
+      <!-- Rubika Direct -->
+      <div class="bg-white p-6 rounded-3xl border border-orange-100 shadow-sm text-center space-y-3 hover:shadow-md transition">
+        <div class="w-14 h-14 mx-auto rounded-2xl bg-purple-50 text-purple-600 flex items-center justify-center text-2xl">
+          <i class="fa-solid fa-comments"></i>
+        </div>
+        <h3 class="font-bold text-slate-800 text-base">سفارش در پیام‌رسان روبیکا</h3>
+        <p class="text-xs text-slate-500">ارسال فاکتور، عکس محصول و پیگیری سفارشات</p>
+        <a href="https://rubika.ir/petrapet" target="_blank" class="block text-sm sm:text-base font-black text-purple-600 hover:underline" dir="ltr">
+          @petrapet
+        </a>
+      </div>
+
+      <!-- Instagram Direct -->
+      <div class="bg-white p-6 rounded-3xl border border-orange-100 shadow-sm text-center space-y-3 hover:shadow-md transition">
+        <div class="w-14 h-14 mx-auto rounded-2xl bg-pink-50 text-pink-600 flex items-center justify-center text-2xl">
+          <i class="fa-brands fa-instagram"></i>
+        </div>
+        <h3 class="font-bold text-slate-800 text-base">صفحه اینستاگرام رسمی</h3>
+        <p class="text-xs text-slate-500">مشاهده استوری موجودی، تخفیف‌ها و دایرکت</p>
+        <a href="https://www.instagram.com/petra_petclinic?stkn=MTVmM2Q4ZGhqNjloMw==" target="_blank" class="block text-sm sm:text-base font-black text-pink-600 hover:underline" dir="ltr">
+          @petrapet
+        </a>
+      </div>
+    </div>
+
+    <!-- Direct Order Form Section -->
+    <div class="bg-white rounded-3xl border border-orange-100/90 shadow-sm p-6 sm:p-10 space-y-6">
+      <div class="border-b pb-4 space-y-1">
+        <div class="inline-flex items-center gap-2 text-purple-600 text-xs font-black">
+          <i class="fa-solid fa-comments text-base"></i>
+          <span>سفارش‌گیری آنلاین و سریع</span>
+        </div>
+        <h2 class="text-xl sm:text-2xl font-black text-slate-900">فرم ثبت سفارش مستقیم در روبیکا و اینستاگرام</h2>
+        <p class="text-xs text-slate-500">مشخصات خود و محصول درخواستی را بنویسید تا پیش‌فاکتور آماده شده و مستقیماً برای ارسال هدایت شوید:</p>
+      </div>
+
+      <form onsubmit="handleDirectContactOrder(event, 'rubika')" class="space-y-4 max-w-3xl">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">نام و نام خانوادگی *</label>
+            <input type="text" id="contact-name" required placeholder="مثال: مریم کریمی" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-800 outline-none focus:border-purple-500">
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">شماره تلفن همراه *</label>
+            <input type="tel" id="contact-phone" required placeholder="مثال: 09123456789" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-800 outline-none focus:border-purple-500" dir="ltr">
+          </div>
+
+          <div class="sm:col-span-2">
+            <label class="block text-xs font-bold text-slate-700 mb-1">محصول یا اقلام درخواستی شما *</label>
+            <input type="text" id="contact-items" required placeholder="مثال: ۱ عدد غذای خشک رویال کنین فیت ۳۲ + ۱ عدد خمیر مالت جیم‌کت" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-800 outline-none focus:border-purple-500">
+          </div>
+
+          <div class="sm:col-span-2">
+            <label class="block text-xs font-bold text-slate-700 mb-1">شهر و آدرس کامل پستی</label>
+            <input type="text" id="contact-address" placeholder="استان، شهر، خیابان، پلاک، واحد" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-800 outline-none focus:border-purple-500">
+          </div>
+
+          <div class="sm:col-span-2">
+            <label class="block text-xs font-bold text-slate-700 mb-1">توضیحات و یادداشت (نژاد گربه، سن یا حساسیت خاص)</label>
+            <textarea id="contact-message" rows="3" placeholder="اگر گربه شما حساسیت گوارشی دارد یا مشاوره می‌خواهید اینجا قید کنید..." class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs text-slate-800 outline-none focus:border-purple-500 leading-relaxed"></textarea>
+          </div>
+        </div>
+
+        <div class="flex flex-col sm:flex-row items-center gap-3 pt-2">
+          <button type="submit" class="w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-purple-600 to-indigo-700 hover:brightness-110 text-white font-extrabold text-sm rounded-2xl shadow-lg transition flex items-center justify-center gap-2.5">
+            <i class="fa-solid fa-comments text-lg"></i>
+            <span>ایجاد سفارش و ارسال در روبیکا (@petrapet)</span>
+          </button>
+          <button type="button" onclick="handleDirectContactOrder(event, 'instagram')" class="w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-pink-500 via-rose-500 to-amber-500 hover:brightness-110 text-white font-extrabold text-sm rounded-2xl shadow-lg transition flex items-center justify-center gap-2.5">
+            <i class="fa-brands fa-instagram text-lg"></i>
+            <span>ارسال به دایرکت اینستاگرام</span>
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <!-- FAQ Accordion -->
+    <div class="bg-white rounded-3xl border border-orange-100/90 shadow-sm p-6 sm:p-10 space-y-6">
+      <div class="space-y-1">
+        <span class="text-orange-600 font-bold text-xs uppercase tracking-wider">پرسش‌های پرتکرار</span>
+        <h2 class="text-xl sm:text-2xl font-black text-slate-900">سوالات متداول سرپرستان گربه‌ها</h2>
+      </div>
+
+      <div class="space-y-3 text-xs sm:text-sm">
+        <details class="group bg-slate-50 p-4 rounded-2xl border border-slate-200/80 cursor-pointer">
+          <summary class="font-bold text-slate-800 flex justify-between items-center list-none">
+            <span>چگونه می‌توانم در پت‌شاپ PetRaPet سفارش ثبت کنم؟</span>
+            <i class="fa-solid fa-chevron-down text-slate-400 group-open:rotate-180 transition"></i>
+          </summary>
+          <p class="mt-3 text-slate-600 leading-relaxed font-normal">
+            شما می‌توانید به راحتی محصولات را به سبد خرید اضافه کنید و سپس روی دکمه «ثبت و ارسال سفارش در روبیکا» کلیک کنید. همچنین می‌توانید مستقیماً به کانال/آیدی روبیکا @petrapet یا دایرکت اینستاگرام @petrapet پیام داده یا تماس بگیرید.
+          </p>
+        </details>
+
+        <details class="group bg-slate-50 p-4 rounded-2xl border border-slate-200/80 cursor-pointer">
+          <summary class="font-bold text-slate-800 flex justify-between items-center list-none">
+            <span>ارسال سفارشات چقدر زمان می‌برد؟</span>
+            <i class="fa-solid fa-chevron-down text-slate-400 group-open:rotate-180 transition"></i>
+          </summary>
+          <p class="mt-3 text-slate-600 leading-relaxed font-normal">
+            در شهر تهران ارسال از طریق پیک اکسپرس در همان روز کاری صورت می‌پذیرد. برای سایر شهرستان‌ها، مرسوله‌ها با بسته‌بندی ضدضربه توسط پست پیشتاز و تیپاکس ظرف ۲ الی ۳ روز کاری تحویل داده می‌شوند.
+          </p>
+        </details>
+
+        <details class="group bg-slate-50 p-4 rounded-2xl border border-slate-200/80 cursor-pointer">
+          <summary class="font-bold text-slate-800 flex justify-between items-center list-none">
+            <span>آیا محصولات دارای ضمانت اصالت و تاریخ انقضا هستند؟</span>
+            <i class="fa-solid fa-chevron-down text-slate-400 group-open:rotate-180 transition"></i>
+          </summary>
+          <p class="mt-3 text-slate-600 leading-relaxed font-normal">
+            بله، تمام بسته‌ها پلمپ اصلی کارخانه بوده و دارای تاریخ انقضای معتبر هستند. ما اصالت و کیفیت تمام اقلام را به صورت ۱۰۰٪ تضمین می‌کنیم.
+          </p>
+        </details>
+
+        <details class="group bg-slate-50 p-4 rounded-2xl border border-slate-200/80 cursor-pointer">
+          <summary class="font-bold text-slate-800 flex justify-between items-center list-none">
+            <span>آیا مشاوره تغذیه قبل از خرید رایگان است؟</span>
+            <i class="fa-solid fa-chevron-down text-slate-400 group-open:rotate-180 transition"></i>
+          </summary>
+          <p class="mt-3 text-slate-600 leading-relaxed font-normal">
+            کاملاً رایگان! کافیست در روبیکا یا اینستاگرام سن و وضعیت گربه خود را برای ما بفرستید تا بهترین رژیم غذایی مناسب او پیشنهاد شود.
+          </p>
+        </details>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- CART DRAWER -->
+  <div id="cart-drawer" class="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm hidden transition-all">
+    <div class="absolute inset-y-0 left-0 max-w-md w-full bg-white shadow-2xl flex flex-col justify-between p-6">
+      <div class="flex items-center justify-between pb-4 border-b border-slate-100">
+        <div class="flex items-center gap-2">
+          <i class="fa-solid fa-cart-shopping text-orange-600 text-lg"></i>
+          <h3 class="font-extrabold text-base text-slate-900">سبد خرید شما</h3>
+        </div>
+        <button id="close-cart-btn" class="p-2 text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-lg"></i></button>
+      </div>
+      <div id="cart-items-container" class="flex-1 overflow-y-auto custom-scroll py-4 space-y-3"></div>
+      <div id="cart-empty-view" class="flex-1 flex flex-col items-center justify-center text-center p-6 space-y-3 hidden">
+        <p class="font-bold text-sm text-slate-800">سبد خرید شما خالی است!</p>
+      </div>
+      <div id="cart-footer-view" class="pt-4 border-t space-y-3">
+        <div class="flex items-center justify-between text-sm">
+          <span class="font-bold text-slate-600">مجموع کل:</span>
+          <span class="text-lg font-black text-slate-900"><span id="cart-total-amount">۰</span> تومان</span>
+        </div>
+        <div class="grid grid-cols-1 gap-2">
+          <button onclick="openRubikaOrderModal()" class="w-full py-3.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-700 text-white font-black text-xs sm:text-sm shadow-md flex items-center justify-center gap-2">
+            <i class="fa-solid fa-comments text-base"></i>
+            <span>ثبت و ارسال سفارش در روبیکا (@petrapet)</span>
+          </button>
+          <a href="https://www.instagram.com/petra_petclinic?stkn=MTVmM2Q4ZGhqNjloMw==" target="_blank" class="w-full py-2.5 rounded-xl bg-gradient-to-r from-pink-500 to-rose-500 text-white font-bold text-xs shadow flex items-center justify-center gap-2">
+            <i class="fa-brands fa-instagram text-sm"></i>
+            <span>سفارش در دایرکت اینستاگرام</span>
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RUBIKA & INSTAGRAM ORDER MODAL -->
+  <div id="rubika-order-modal" class="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-5">
+      <div class="flex items-center justify-between border-b pb-3">
+        <div class="flex items-center gap-2">
+          <i class="fa-solid fa-comments text-purple-600 text-xl"></i>
+          <h3 class="font-black text-sm text-slate-900">تکمیل سفارش و فاکتور</h3>
+        </div>
+        <button onclick="closeRubikaOrderModal()" class="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg">
+          <i class="fa-solid fa-xmark text-base"></i>
+        </button>
+      </div>
+
+      <div class="bg-slate-50 p-3 rounded-2xl border border-slate-200">
+        <div id="rb-order-items-list" class="space-y-1 max-h-32 overflow-y-auto custom-scroll"></div>
+        <div class="pt-2 mt-2 border-t flex justify-between text-xs font-black text-slate-800">
+          <span>مبلغ کل:</span>
+          <span id="rb-order-total-amount" class="text-orange-600 font-bold">۰ تومان</span>
+        </div>
+      </div>
+
+      <form onsubmit="submitRubikaOrder(event)" class="space-y-3 text-xs">
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">نام تحویل‌گیرنده *</label>
+          <input type="text" id="rb-customer-name" required placeholder="نام شما" class="w-full bg-slate-50 border rounded-xl px-3 py-2 text-xs outline-none focus:border-purple-500">
+        </div>
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">شماره تماس *</label>
+          <input type="tel" id="rb-customer-phone" required placeholder="09..." class="w-full bg-slate-50 border rounded-xl px-3 py-2 text-xs outline-none focus:border-purple-500" dir="ltr">
+        </div>
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">آدرس ارسال</label>
+          <input type="text" id="rb-customer-address" placeholder="شهر و آدرس کامل" class="w-full bg-slate-50 border rounded-xl px-3 py-2 text-xs outline-none focus:border-purple-500">
+        </div>
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">یادداشت برای سفارش (اختیاری)</label>
+          <textarea id="rb-customer-notes" rows="2" placeholder="توضیح درباره ساعت تحویل یا طعم مدنظر..." class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2 text-xs outline-none focus:border-purple-500"></textarea>
+        </div>
+        <div class="pt-2 grid grid-cols-1 sm:grid-cols-2 gap-2">
+          <button type="submit" class="w-full py-3 bg-gradient-to-r from-purple-600 to-indigo-700 text-white rounded-xl font-bold text-xs shadow flex items-center justify-center gap-1.5">
+            <i class="fa-solid fa-comments text-sm"></i>
+            <span>ارسال به روبیکا</span>
+          </button>
+          <button type="button" onclick="submitInstagramOrder()" class="w-full py-3 bg-gradient-to-r from-pink-500 to-rose-600 text-white rounded-xl font-bold text-xs shadow flex items-center justify-center gap-1.5">
+            <i class="fa-brands fa-instagram text-sm"></i>
+            <span>ارسال به اینستاگرام</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ADMIN PORTAL MODAL (Managed dynamically by main.js) -->
+  <div id="admin-portal-modal" class="fixed inset-0 z-50 bg-slate-950/75 backdrop-blur-sm hidden flex items-center justify-center p-3 sm:p-5">
+    <!-- Rendered by main.js with full CRUD tabs -->
+  </div>
+
+  <!-- FOOTER -->
+  <footer class="mt-auto bg-slate-950 text-white border-t border-slate-800 pt-10 pb-8">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center sm:text-right flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-400">
+      <p>© ۱۴۰۳ تمام حقوق برای پت‌شاپ PetRaPet محفوظ است.</p>
+      <div class="flex items-center gap-4">
+        <a href="index.html" class="hover:text-white">صفحه اصلی</a>
+        <a href="products.html" class="hover:text-white">فروشگاه</a>
+        <a href="about.html" class="hover:text-white">درباره ما</a>
+        <a href="contact.html" class="text-orange-400 font-bold">تماس و روبیکا</a>
+        <button type="button" onclick="openAdminPortalModal()" class="hover:text-orange-400 flex items-center gap-1 cursor-pointer text-xs">
+          <i class="fa-solid fa-lock text-[10px]"></i> پنل مدیریت
+        </button>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Scripts -->
+  <script src="assets/js/products-data.js"></script>
+  <script src="assets/js/main.js"></script>
+
+  <script>
+    function handleDirectContactOrder(e, targetPlatform) {
+      if (e && e.preventDefault) e.preventDefault();
+      const name = document.getElementById("contact-name")?.value.trim() || "";
+      const phone = document.getElementById("contact-phone")?.value.trim() || "";
+      const items = document.getElementById("contact-items")?.value.trim() || "";
+      const address = document.getElementById("contact-address")?.value.trim() || "هماهنگی در چت";
+      const notes = document.getElementById("contact-message")?.value.trim() || "-";
+
+      if (!name || !phone || !items) {
+        showToast("لطفاً نام، تلفن و اقلام درخواستی را وارد کنید.", "error");
+        return;
+      }
+
+      const message = `🐾 درخواست سفارش جدید از سایت PetRaPet 🐾\n\n` +
+        `👤 نام مشتری: ${name}\n` +
+        `📞 شماره تماس: ${phone}\n` +
+        `📍 آدرس تحویل: ${address}\n\n` +
+        `📦 اقلام درخواستی:\n${items}\n\n` +
+        `📝 یادداشت: ${notes}\n\n` +
+        `پت‌شاپ PetRaPet • PetRaPet`;
+
+      copyTextToClipboard(message);
+      if (targetPlatform === "instagram") {
+        showToast("متن سفارش کپی شد! در حال انتقال به دایرکت اینستاگرام...", "instagram");
+        setTimeout(() => window.open(INSTAGRAM_URL, "_blank", "noopener,noreferrer"), 600);
+      } else {
+        showToast("متن سفارش کپی شد! در حال باز کردن روبیکا (@petrapet)...", "rubika");
+        setTimeout(() => window.open(RUBIKA_URL, "_blank", "noopener,noreferrer"), 600);
+      }
+    }
+  </script>
+<script src="assets/js/foxshop-upgrades.js"></script></body>
+</html>
