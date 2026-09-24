@@ -6,10 +6,12 @@
   const LS_WISHLIST = 'foxshop_wishlist_v1';
   const LS_COMPARE = 'foxshop_compare_v1';
   const LS_RESTOCK = 'foxshop_restock_v1';
-  const FREE_SHIPPING_DEFAULT = 3500000;
+  const FREE_SHIPPING_DEFAULT = 3900000;
   const SHOP_LOCATION = 'تبریز، ایران';
   const INSTAGRAM_URL = 'https://www.instagram.com/petra_petclinic?stkn=MTVmM2Q4ZGhqNjloMw==';
   const RUBIKA_URL = 'https://rubika.ir/petrapet';
+  const WHATSAPP_URL = 'https://wa.me/989960494973';
+  const TELEGRAM_URL = 'https://t.me/petrapetshop';
 
   function readList(key) {
     try {
@@ -65,8 +67,7 @@
   }
 
   function freeShippingThreshold() {
-    const n = Number(window.settings?.freeShippingThreshold);
-    return Number.isFinite(n) && n > 0 ? n : FREE_SHIPPING_DEFAULT;
+    return 3900000;
   }
 
   function shippingMessage(total = 0) {
@@ -246,7 +247,7 @@
       `🚚 ${shippingMessage(total)}`,
       `✅ مبلغ کل کالاها: ${window.formatPrice(total)} تومان`,
       '',
-      'این متن از سبد خرید سایت کپی شده است. برای ثبت نهایی، آن را در دایرکت اینستاگرام یا روبیکا Paste کنید.'
+      'این متن از سبد خرید سایت کپی شده است. برای ثبت نهایی، آن را در گفت‌وگوی کانال انتخابی Paste کنید.'
     ].join('\n');
   }
 
@@ -273,35 +274,45 @@
     const items = Array.isArray(window.cart) ? window.cart : [];
     if (!items.length) return toast('سبد خرید خالی است.', 'info');
     const ok = await window.copyTextToClipboard(buildInvoiceText());
-    if (!ok) toast('کپی خودکار انجام نشد؛ می‌توانید متن فاکتور را از دکمه «کپی فاکتور» انتخاب کنید.', 'info');
-    openOrderGuide(channel);
+    if (!ok) toast('کپی خودکار انجام نشد؛ متن فاکتور در راهنما برای کپی دستی هم قابل استفاده است.', 'info');
+    openOrderGuide(channel, ok);
   };
 
-  function openOrderGuide(channel = 'instagram') {
+  function channelMeta(channel) {
+    const map = {
+      whatsapp: { label:'واتساپ', target:'واتساپ', url:WHATSAPP_URL, color:'#72d6bd', icon:'fa-brands fa-whatsapp' },
+      telegram: { label:'تلگرام', target:'تلگرام', url:TELEGRAM_URL, color:'#8bd2ff', icon:'fa-brands fa-telegram' },
+      rubika: { label:'روبیکا', target:'روبیکا', url:RUBIKA_URL, color:'#c7a8ff', icon:'fa-solid fa-comments' },
+      instagram: { label:'اینستاگرام', target:'دایرکت اینستاگرام', url:INSTAGRAM_URL, color:'#ff9b9b', icon:'fa-brands fa-instagram' }
+    };
+    return map[channel] || map.instagram;
+  }
+
+  function openOrderGuide(channel = 'instagram', copied = true) {
+    const meta = channelMeta(channel);
     let modal = document.getElementById('fox-order-guide');
     if (!modal) {
       modal = document.createElement('div'); modal.id = 'fox-order-guide';
-      modal.className = 'fixed inset-0 z-[70] bg-slate-950/70 backdrop-blur-sm hidden items-center justify-center p-4';
+      modal.className = 'fixed inset-0 z-[70] bg-slate-950/45 backdrop-blur-sm hidden items-center justify-center p-4';
       document.body.appendChild(modal);
     }
-    const isInsta = channel === 'instagram';
-    modal.innerHTML = `<div class="w-full max-w-md rounded-3xl bg-white shadow-2xl p-6 space-y-4" dir="rtl">
-      <div class="flex items-center justify-between gap-3"><div><h3 class="font-black text-base text-slate-900">راهنمای ارسال فاکتور</h3><p class="text-[11px] text-slate-400 mt-1">فاکتور همین حالا در کلیپ‌بورد کپی شده است.</p></div><button onclick="document.getElementById('fox-order-guide').classList.add('hidden')" class="w-9 h-9 rounded-xl bg-slate-100 text-slate-500"><i class="fa-solid fa-xmark"></i></button></div>
-      <div class="space-y-3 text-xs text-slate-700 leading-relaxed">
-        <div class="flex gap-3"><span class="w-7 h-7 rounded-lg bg-orange-50 text-orange-600 flex items-center justify-center font-black">۱</span><p>روی دکمه پایین بزنید تا ${isInsta ? 'دایرکت اینستاگرام' : 'روبیکا'} باز شود.</p></div>
-        <div class="flex gap-3"><span class="w-7 h-7 rounded-lg bg-orange-50 text-orange-600 flex items-center justify-center font-black">۲</span><p>گفت‌وگو با PetraPet را باز کنید.</p></div>
-        <div class="flex gap-3"><span class="w-7 h-7 rounded-lg bg-orange-50 text-orange-600 flex items-center justify-center font-black">۳</span><p>داخل کادر پیام نگه دارید و گزینه «Paste / چسباندن» را بزنید و فاکتور را ارسال کنید.</p></div>
+    modal.innerHTML = `<div class="w-full max-w-md rounded-[26px] bg-white shadow-2xl p-6 space-y-4" dir="rtl" style="border:2px solid #101820">
+      <div class="flex items-center justify-between gap-3"><div><h3 class="font-black text-base" style="color:${meta.color};-webkit-text-stroke:.5px #111">راهنمای سفارش با ${meta.label}</h3><p class="text-[11px] mt-1">${copied ? 'فاکتور همین حالا خودکار در کلیپ‌بورد کپی شد.' : 'کپی خودکار در این مرورگر در دسترس نبود؛ فاکتور را از گزینه «کپی فاکتور» بردارید.'}</p></div><button onclick="document.getElementById('fox-order-guide').classList.add('hidden')" class="w-9 h-9 rounded-xl bg-slate-100 text-slate-700"><i class="fa-solid fa-xmark"></i></button></div>
+      <div class="space-y-3 text-xs leading-relaxed">
+        <div class="flex gap-3"><span class="w-7 h-7 rounded-lg flex items-center justify-center font-black" style="background:${meta.color};border:2px solid #101820">۱</span><p>دکمه پایین را بزنید تا ${meta.target} باز شود.</p></div>
+        <div class="flex gap-3"><span class="w-7 h-7 rounded-lg flex items-center justify-center font-black" style="background:#ffe58b;border:2px solid #101820">۲</span><p>گفت‌وگوی PetraPet را باز کنید.</p></div>
+        <div class="flex gap-3"><span class="w-7 h-7 rounded-lg flex items-center justify-center font-black" style="background:#8bd2ff;border:2px solid #101820">۳</span><p>در کادر پیام گزینه «Paste / چسباندن» را بزنید و فاکتور کپی‌شده را ارسال کنید.</p></div>
       </div>
-      <button onclick="openOrderChannel('${isInsta ? 'instagram' : 'rubika'}')" class="w-full py-3.5 rounded-2xl ${isInsta ? 'bg-gradient-to-r from-pink-500 to-rose-600' : 'bg-gradient-to-r from-purple-600 to-indigo-700'} text-white font-black text-sm shadow">${isInsta ? 'باز کردن اینستاگرام' : 'باز کردن روبیکا'}</button>
+      <button onclick="openOrderChannel('${channel}')" class="w-full py-3.5 rounded-2xl text-white font-black text-sm shadow" style="background:${meta.color};color:#101820;border:2px solid #101820"><i class="${meta.icon}"></i> باز کردن ${meta.label}</button>
       <button onclick="document.getElementById('fox-order-guide').classList.add('hidden')" class="w-full py-2.5 rounded-2xl bg-slate-100 text-slate-700 font-bold text-xs">بستن</button>
     </div>`;
     modal.classList.remove('hidden'); modal.classList.add('flex');
   }
 
   window.openOrderChannel = function (channel) {
-    const url = channel === 'instagram' ? INSTAGRAM_URL : RUBIKA_URL;
-    const win = window.open(url, '_blank', 'noopener,noreferrer');
-    if (!win) window.location.href = url;
+    const meta = channelMeta(channel);
+    const win = window.open(meta.url, '_blank', 'noopener,noreferrer');
+    if (!win) window.location.href = meta.url;
   };
 
   function addOrderButtonsToCart() {
@@ -312,9 +323,8 @@
     tools.className = 'space-y-3';
     tools.innerHTML = `<div class="rounded-2xl p-3 petra-cart-summary"><div class="flex items-center justify-between text-[11px] font-bold"><span><i class="fa-solid fa-truck-fast"></i> ارسال رایگان</span><span data-free-shipping-note></span></div><div class="mt-2 h-2 rounded-full bg-white overflow-hidden border border-black/10"><div data-free-shipping-progress class="h-full bg-gradient-to-r from-emerald-300 via-sky-300 to-violet-300 rounded-full transition-all"></div></div></div>
       <div class="grid grid-cols-2 gap-2"><button onclick="copyCartItems()" class="py-2.5 rounded-xl bg-white border-2 border-black font-bold text-[11px]"><i class="fa-solid fa-copy"></i> کپی محصولات</button><button onclick="copyCartInvoice()" class="py-2.5 rounded-xl bg-white border-2 border-black font-bold text-[11px]"><i class="fa-solid fa-file-invoice"></i> کپی فاکتور</button></div>
-      <div class="grid grid-cols-2 gap-2"><button onclick="orderCartBy('rubika')" class="py-3 rounded-xl border-2 border-black bg-[#eee2ff] font-black text-[11px]"><i class="fa-solid fa-comments"></i> روبیکا</button><button onclick="orderCartBy('instagram')" class="py-3 rounded-xl border-2 border-black bg-[#fff1cf] font-black text-[11px]"><i class="fa-brands fa-instagram"></i> اینستاگرام</button></div>
-      <div class="petra-cart-socials" aria-label="ارتباط سریع"><a href="https://wa.me/989960494973" target="_blank" rel="noopener noreferrer">واتساپ</a><a href="https://t.me/petrapetshop" target="_blank" rel="noopener noreferrer">تلگرام</a><a href="https://rubika.ir/petrapet" target="_blank" rel="noopener noreferrer">روبیکا</a><a href="https://www.instagram.com/petra_petclinic?stkn=MTVmM2Q4ZGhqNjloMw==" target="_blank" rel="noopener noreferrer">اینستاگرام</a></div>
-      <p class="text-[10px] leading-relaxed">برای سفارش سریع، یکی از مسیرهای ارتباطی بالا را انتخاب کنید. متن فاکتور نیز قبل از انتقال آماده می‌شود.</p>`;
+      <div class="grid grid-cols-2 gap-2" aria-label="راه‌های سفارش سبد خرید"><button onclick="orderCartBy('whatsapp')" class="petra-cart-order-action" style="background:#72d6bd"><i class="fa-brands fa-whatsapp"></i> واتساپ + کپی فاکتور</button><button onclick="orderCartBy('telegram')" class="petra-cart-order-action" style="background:#8bd2ff"><i class="fa-brands fa-telegram"></i> تلگرام + کپی فاکتور</button><button onclick="orderCartBy('rubika')" class="petra-cart-order-action" style="background:#c7a8ff"><i class="fa-solid fa-comments"></i> روبیکا + کپی فاکتور</button><button onclick="orderCartBy('instagram')" class="petra-cart-order-action" style="background:#ff9b9b"><i class="fa-brands fa-instagram"></i> اینستا + کپی فاکتور</button></div>
+      <p class="text-[10px] leading-relaxed">با انتخاب هر راه ارتباطی، فاکتور ابتدا خودکار کپی می‌شود و سپس راهنمای چسباندن و ارسال برای شما نمایش داده می‌شود.</p>`;
     footer.appendChild(tools);
   }
 
@@ -674,7 +684,7 @@
       thumb.dataset.foxSearchCat='1';
       thumb.className='fox-search-cat-thumb';
       thumb.setAttribute('aria-hidden','true');
-      thumb.innerHTML='<img src="assets/images/foxshop-cat-search.webp" alt="">';
+      thumb.innerHTML='<img src="assets/images/petrapet-logo.png" alt="">';
       actionWrap.insertBefore(thumb, btn);
     }
 

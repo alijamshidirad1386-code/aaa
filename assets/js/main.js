@@ -27,7 +27,7 @@ let settings = {
   instagramUrl: INSTAGRAM_URL,
   aboutText: "پت‌شاپ PetraPet در تبریز با هدف ارائه مرغوب‌ترین و اصیل‌ترین خوراک و ملزومات گربه‌ها ایجاد شده است. ما اهمیت عشق و مراقبتی که نسبت به گربه‌تان دارید را درک می‌کنیم؛ از این رو محصولات را با اطلاعات قابل بررسی درباره برند، اصالت و انقضا عرضه می‌کنیم.",
   storeLocation: "تبریز، ایران",
-  freeShippingThreshold: 3500000,
+  freeShippingThreshold: 3900000,
   shippingCost: 120000,
   shippingDispatchTime: "۱ تا ۲ روز کاری",
   returnPolicy: "شرایط مرجوعی طبق سیاست ثبت‌شده فروشگاه و با بررسی وضعیت کالا انجام می‌شود.",
@@ -62,7 +62,7 @@ if (typeof window !== "undefined") {
 document.addEventListener("DOMContentLoaded", async () => {
   initPetraPetPageNavigationLoader();
   initMobileBottomNav();
-  try { await initStorage(); } catch (err) { console.error("Init storage error:", err); }
+  initStorage().catch(err => console.error("Init storage error:", err));
   initHeader();
   initCartUI();
   initSecretAdminTrigger();
@@ -155,6 +155,8 @@ function applyRemoteStore(store) {
   categories = normalizeCategories(store.categories || []);
   products = normalizeProducts(store.products || []);
   if (store.settings && typeof store.settings === "object") settings = { ...settings, ...store.settings };
+  // PetraPet fixed free-shipping threshold.
+  settings.freeShippingThreshold = 3900000;
   customerStories = Array.isArray(store.customerStories) ? store.customerStories : [];
   lastRemoteStore = { categories, products, settings: { ...settings }, customerStories };
   backendReady = true;
@@ -227,44 +229,58 @@ async function checkRemoteAdminSession() {
 }
 
 async function initStorage() {
-  // Public catalog comes from Cloudflare D1 when the API is configured.
+  // Paint from local/default catalog immediately. The remote D1 catalog refreshes in the background.
+  let localReady = false;
   try {
-    await getRemoteStoreOnce();
-  } catch (remoteErr) {
-    backendReady = false;
-    console.warn("Remote store unavailable; using built-in catalog fallback:", remoteErr);
-    try {
-      const savedCats = localStorage.getItem(LS_CATEGORIES);
-      const defaultCats = (typeof DEFAULT_CATEGORIES !== "undefined") ? [...DEFAULT_CATEGORIES] : [];
+    const savedCats = localStorage.getItem(LS_CATEGORIES);
+    const defaultCats = (typeof DEFAULT_CATEGORIES !== "undefined") ? [...DEFAULT_CATEGORIES] : [];
+    if (!categories.length) {
       categories = normalizeCategories(savedCats ? JSON.parse(savedCats) : null);
       if (!categories.length) categories = normalizeCategories(defaultCats);
+    }
 
-      const savedProds = localStorage.getItem(LS_PRODUCTS);
-      const defaultProds = (typeof DEFAULT_PRODUCTS !== "undefined") ? [...DEFAULT_PRODUCTS] : [];
+    const savedProds = localStorage.getItem(LS_PRODUCTS);
+    const defaultProds = (typeof DEFAULT_PRODUCTS !== "undefined") ? [...DEFAULT_PRODUCTS] : [];
+    if (!products.length) {
       products = normalizeProducts(savedProds ? JSON.parse(savedProds) : null);
       if (!products.length) products = normalizeProducts(defaultProds);
-
-      const savedSettings = localStorage.getItem(LS_SETTINGS);
-      if (savedSettings) {
-        const parsedSettings = JSON.parse(savedSettings);
-        if (parsedSettings && typeof parsedSettings === "object" && !Array.isArray(parsedSettings)) settings = { ...settings, ...parsedSettings };
-      }
-      customerStories = [];
-    } catch (err) {
-      console.error("Local fallback load error:", err);
-      categories = normalizeCategories(typeof DEFAULT_CATEGORIES !== "undefined" ? DEFAULT_CATEGORIES : []);
-      products = normalizeProducts(typeof DEFAULT_PRODUCTS !== "undefined" ? DEFAULT_PRODUCTS : []);
     }
+
+    const savedSettings = localStorage.getItem(LS_SETTINGS);
+    if (savedSettings) {
+      const parsedSettings = JSON.parse(savedSettings);
+      if (parsedSettings && typeof parsedSettings === "object" && !Array.isArray(parsedSettings)) settings = { ...settings, ...parsedSettings };
+    }
+    // Keep the store offer consistent even when old local settings are present.
+    settings.freeShippingThreshold = 3900000;
+    localReady = categories.length > 0 || products.length > 0;
+  } catch (err) {
+    console.warn("Local catalog bootstrap error:", err);
+    categories = normalizeCategories(typeof DEFAULT_CATEGORIES !== "undefined" ? DEFAULT_CATEGORIES : []);
+    products = normalizeProducts(typeof DEFAULT_PRODUCTS !== "undefined" ? DEFAULT_PRODUCTS : []);
+    settings.freeShippingThreshold = 3900000;
+    localReady = categories.length > 0 || products.length > 0;
   }
 
   try {
     const savedCart = localStorage.getItem(LS_CART);
     cart = normalizeCart(savedCart ? JSON.parse(savedCart) : []);
   } catch { cart = []; }
-  if (!backendReady && typeof window !== 'undefined') {
+
+  // Let the page render immediately from local/default data.
+  if (localReady && !window.__FOXSHOP_STORE_READY__) {
     window.__FOXSHOP_STORE_READY__ = true;
     window.__FOXSHOP_STORE_LOADING__ = false;
     window.dispatchEvent(new CustomEvent('foxshop:store-ready'));
+  }
+
+  // Background refresh; it updates the UI when the D1 catalog is available.
+  try {
+    await getRemoteStoreOnce();
+  } catch (remoteErr) {
+    if (!localReady) {
+      console.warn("Remote store unavailable and no local catalog was found:", remoteErr);
+    }
   }
 }
 
@@ -356,7 +372,7 @@ function ensurePetraPetPageLoader() {
   loader.setAttribute("aria-busy", "true");
   loader.innerHTML = `
     <div class="fox-global-loader-card" role="status">
-      <div class="fox-global-loader-logo"><img src="${FOXSHOP_LOGO_URL}" alt="PetraPet" decoding="async"></div>
+      <div class="fox-global-loader-logo"><img src="${PETRAPET_LOGO_URL}" alt="PetraPet" decoding="async"></div>
       <div class="fox-global-loader-spinner" aria-hidden="true"></div>
       <div class="fox-global-loader-title">در حال بارگیری</div>
       <div class="fox-global-loader-subtitle">لطفاً چند لحظه صبر کنید…</div>
@@ -421,10 +437,14 @@ function initPetraPetPageNavigationLoader() {
     if (pending) {
       showPetraPetPageLoader();
       loadStartedAt = Date.now();
-      const reveal = () => hidePetraPetPageLoader(Math.max(120, 360 - (Date.now() - loadStartedAt)));
-      if (document.readyState === "complete") reveal();
-      else window.addEventListener("load", reveal, { once: true });
-      setTimeout(reveal, 5200);
+      const reveal = () => hidePetraPetPageLoader(Math.max(80, 260 - (Date.now() - loadStartedAt)));
+      if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", reveal, { once: true });
+      } else {
+        setTimeout(reveal, 90);
+      }
+      window.addEventListener("load", reveal, { once: true });
+      setTimeout(reveal, 1400);
     } else {
       hidePetraPetPageLoader(0);
     }
