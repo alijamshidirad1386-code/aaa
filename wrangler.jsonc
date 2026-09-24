@@ -1,6 +1,6 @@
 {
   "$schema": "https://unpkg.com/wrangler@4.133.0/config-schema.json",
-  "name": "petrapet",
+  "name": "aaa",
   "main": "./worker.js",
   "compatibility_date": "2026-09-16",
   "compatibility_flags": ["nodejs_compat"],
@@ -14,8 +14,8 @@
   "d1_databases": [
     {
       "binding": "DB",
-      "database_name": "foxshop-db",
-      "database_id": "ac370356-eb2a-4e21-8d88-fc750341388a"
+      "database_name": "petra-db",
+      "database_id": "1313268d-55a3-4640-bc42-c98b90ea9b76"
     }
   ]
 }
