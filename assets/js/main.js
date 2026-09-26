@@ -15,6 +15,7 @@ const LS_SETTINGS = "foxshop_settings_data";
 const LS_ADMIN = "foxshop_admin_credentials";
 const LS_ADMIN_USERNAME = "foxshop_admin_username";
 const DEFAULT_ADMIN_USERNAME = "admin";
+const DEFAULT_ADMIN_PASSWORD = "admin123";
 const RUBIKA_URL = "https://rubika.ir/petrapet";
 
 // State
@@ -353,7 +354,7 @@ function escapeHtml(str) {
  * PetraPet page navigation loader. Replaces decorative navigation flashes with
  * one clean full-screen loader and works on every page using this shared file.
  */
-const FOXSHOP_LOGO_URL = "https://lh3.googleusercontent.com/aida-public/AB6AXuCA9wPsl74QezScl6MSgkI2o0xUTzfcjGUtFbzxomrJAIf6RXTyJ4Vt37NbG-HSROy0k7OY1w1g0FQycVmExxDWxx-pTo4BozV8Rt7OnTeb8vvsIBis0RxQIaeFqPPYcMaOM7KMCmth-w7A9l_TAW9Z_nmWueMMYj89L-312K11CIz-TgjjEO9hEsd41UPsCivtswJi7O-hpFxHWGJl4xZHf5w5R50arV9ZPUhMFzPJlfyNtICfR0IBS6hMALr65T-hxkA";
+const PETRAPET_LOGO_URL = "/assets/images/petrapet-logo.png";
 const FOXSHOP_NAV_LOADER_KEY = "foxshop_nav_loader_v1";
 let foxShopPageLoader = null;
 let foxShopPageLoaderTimer = null;
@@ -1137,12 +1138,20 @@ function renderAdminPortal() {
           <div>
             <label class="block text-xs font-bold text-slate-700 mb-1.5">رمز عبور مدیریت:</label>
             <input type="password" id="admin-password-input" required ${remainingLockout > 0 ? "disabled" : ""}
+              value="${escapeHtml(DEFAULT_ADMIN_PASSWORD)}" autocomplete="current-password"
               placeholder="رمز عبور را وارد نمایید..."
               class="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-200 outline-none text-xs font-mono transition bg-slate-50 disabled:bg-slate-100">
             <p class="text-[10px] text-slate-400 mt-1.5 flex items-center gap-1">
               <i class="fa-solid fa-key text-orange-400"></i>
               <span>رمز عبور را در پنل مدیریت یا D1 به‌صورت امن نگهداری و تغییر دهید.</span>
             </p>
+          </div>
+
+          <div class="admin-default-credentials" role="note" aria-label="اطلاعات ورود پیش‌فرض">
+            <div class="admin-default-credentials-title"><i class="fa-solid fa-wand-magic-sparkles"></i><span>ورود پیش‌فرض آماده است</span></div>
+            <div class="admin-default-credential-row"><span>نام کاربری</span><code>admin</code></div>
+            <div class="admin-default-credential-row"><span>رمز عبور</span><code>${escapeHtml(DEFAULT_ADMIN_PASSWORD)}</code></div>
+            <small>بعد از ورود، از بخش امنیت می‌توانید این اطلاعات را تغییر دهید.</small>
           </div>
 
           <button type="submit" ${remainingLockout > 0 ? "disabled" : ""}
@@ -1551,7 +1560,7 @@ function renderAdminTabContent() {
           <div class="bg-slate-50 p-4 rounded-2xl border border-slate-200">
             <h4 class="font-bold text-xs text-slate-800 mb-3 flex items-center gap-2">
               <i class="fa-solid fa-key text-orange-600"></i>
-              <span>تغییر رمز عبور مدیریت (رمزنگاری SHA-256)</span>
+              <span>تغییر رمز عبور مدیریت (PBKDF2-HMAC-SHA256)</span>
             </h4>
             <form onsubmit="handleAdminChangePassword(event)" class="space-y-3">
               <div>
@@ -1561,7 +1570,7 @@ function renderAdminTabContent() {
               </div>
               <div>
                 <label class="block text-[11px] font-bold text-slate-600 mb-1">رمز عبور جدید:</label>
-                <input type="password" id="admin-new-pwd" required minlength="6" placeholder="حداقل ۶ کاراکتر..."
+                <input type="password" id="admin-new-pwd" required minlength="8" placeholder="حداقل ۸ کاراکتر..."
                   class="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs outline-none focus:border-orange-500">
               </div>
               <div>

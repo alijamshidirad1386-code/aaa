@@ -684,7 +684,7 @@
       thumb.dataset.foxSearchCat='1';
       thumb.className='fox-search-cat-thumb';
       thumb.setAttribute('aria-hidden','true');
-      thumb.innerHTML='<img src="assets/images/petrapet-logo.png" alt="">';
+      thumb.innerHTML='<img src="/assets/images/petrapet-logo.png" alt="">';
       actionWrap.insertBefore(thumb, btn);
     }
 
