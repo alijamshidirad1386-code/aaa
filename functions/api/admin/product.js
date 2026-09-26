@@ -1,6 +1,7 @@
 import { bad, buildProductDetails, getStore, json, requireAdmin, requireJson, cleanString, upsertProductDetails, ensureExtendedSchema } from '../_shared.js';
 
 export async function onRequestPost(context) {
+  try {
   const admin = await requireAdmin(context); if (!admin) return bad('نیاز به ورود مدیر دارید.', 401);
   const b = await requireJson(context.request);
   if (!b || typeof b !== 'object') return bad('داده محصول نامعتبر است.');
@@ -27,4 +28,9 @@ export async function onRequestPost(context) {
 
   await upsertProductDetails(db, id, buildProductDetails(b?.details || b));
   return json({ ok: true, store: await getStore(db) });
+  } catch (error) {
+    console.error('ADMIN_PRODUCT_CREATE_ERROR', error);
+    return bad('ذخیره محصول انجام نشد: ' + String(error?.message || error), 500);
+  }
 }
+
