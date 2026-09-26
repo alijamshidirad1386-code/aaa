@@ -618,25 +618,30 @@
     function renderHomeCategories() {
       const container = document.getElementById("home-categories-grid");
       if (!container) return;
-
-      container.innerHTML = categories.map(cat => `
-        <a href="products.html?category=${cat.id}" class="group rounded-2xl p-4 bg-gradient-to-br ${cat.color || 'from-orange-400 to-amber-500'} text-white shadow-md hover:shadow-xl hover:-translate-y-1 transition duration-300 flex flex-col justify-between aspect-square relative overflow-hidden">
-          ${cat.image ? `
-            <img src="${cat.image}" alt="${escapeHtml(cat.name)}" loading="lazy" decoding="async" class="absolute inset-0 w-full h-full object-cover opacity-35 group-hover:scale-110 group-hover:opacity-50 transition duration-500 pointer-events-none">
-            <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent pointer-events-none"></div>
-          ` : ''}
-          <div class="flex items-center justify-between relative z-10">
-            <span class="w-8 h-8 rounded-xl bg-black/25 backdrop-blur-sm flex items-center justify-center text-sm shadow">
-              <i class="fa-solid ${cat.icon || 'fa-paw'}"></i>
-            </span>
-            <i class="fa-solid fa-arrow-left text-xs opacity-0 group-hover:opacity-100 transition -translate-x-2 group-hover:translate-x-0"></i>
-          </div>
-          <div class="relative z-10">
-            <p class="text-[10px] text-white/80 font-mono">${escapeHtml(cat.slug || '')}</p>
-            <h3 class="font-black text-sm leading-snug mt-0.5 drop-shadow-sm">${escapeHtml(cat.name)}</h3>
-          </div>
-        </a>
-      `).join("");
+      const palette = ["#FF8A5B", "#5BC0EB", "#9B6BFF", "#F05AA8", "#35C98C", "#FFC857", "#6C7BFF"];
+      container.innerHTML = categories.length ? categories.map((cat, index) => {
+        const count = products.filter(p => p.categoryId === cat.id).length;
+        const accent = palette[index % palette.length];
+        return `
+          <a href="products.html?category=${encodeURIComponent(cat.id)}" class="pp-category-card" style="--pp-accent:${accent}">
+            <span class="pp-category-card-glow" aria-hidden="true"></span>
+            <span class="pp-category-number">${String(index + 1).padStart(2, '0')}</span>
+            <div class="pp-category-media">
+              ${cat.image ? `<img src="${escapeHtml(cat.image)}" alt="${escapeHtml(cat.name)}" loading="lazy" decoding="async">` : ''}
+              <span class="pp-category-icon"><i class="fa-solid ${cat.icon || 'fa-paw'}"></i></span>
+            </div>
+            <div class="pp-category-copy">
+              <span class="pp-category-en">${escapeHtml(cat.slug || 'CAT COLLECTION')}</span>
+              <h3>${escapeHtml(cat.name)}</h3>
+              <span class="pp-category-meta"><b>${toPersianDigits(count)}</b> کالا <i class="fa-solid fa-arrow-left"></i></span>
+            </div>
+          </a>
+        `;
+      }).join("") : `
+        <div class="pp-empty-categories col-span-full">
+          <i class="fa-solid fa-layer-group"></i>
+          <span>هنوز دسته‌بندی‌ای اضافه نشده است.</span>
+        </div>`;
     }
 
     function renderHomeFeatured() {

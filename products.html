@@ -200,7 +200,7 @@
 
     <!-- Category Filter Pill Chips -->
     <div class="overflow-x-auto custom-scroll pb-2">
-      <div id="category-pills-container" class="flex items-center gap-2.5 min-w-max">
+      <div id="category-pills-container" class="pp-category-filter-row">
         <!-- Rendered via JS -->
       </div>
     </div>
@@ -417,26 +417,21 @@
     function renderCategoryPills() {
       const container = document.getElementById("category-pills-container");
       if (!container) return;
-
       const pills = [
-        { id: "all", name: "همه محصولات", count: products.length },
+        { id: "all", name: "همه محصولات", count: products.length, icon: "fa-border-all" },
         ...categories.map(c => ({
           id: c.id,
           name: c.name,
-          count: products.filter(p => p.categoryId === c.id).length
+          count: products.filter(p => p.categoryId === c.id).length,
+          icon: c.icon || "fa-paw"
         }))
       ];
-
-      container.innerHTML = pills.map(p => `
-        <button onclick="setCategoryFilter('${p.id}')" 
-                class="px-4 py-2 rounded-2xl text-xs font-bold transition flex items-center gap-1.5 whitespace-nowrap shadow-sm
-                       ${activeCategory === p.id 
-                         ? 'bg-orange-600 text-white shadow-orange-500/20' 
-                         : 'bg-white text-slate-700 hover:bg-orange-50 hover:text-orange-600 border border-slate-200'}">
-          <span>${escapeHtml(p.name)}</span>
-          <span class="text-[10px] px-1.5 py-0.5 rounded-full ${activeCategory === p.id ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-500'}">
-            ${toPersianDigits(p.count)}
-          </span>
+      container.innerHTML = pills.map((p, index) => `
+        <button onclick="setCategoryFilter('${String(p.id).replace(/'/g, "\'")}')"
+          class="pp-category-filter ${activeCategory === p.id ? 'is-active' : ''}" aria-pressed="${activeCategory === p.id}">
+          <span class="pp-category-filter-icon"><i class="fa-solid ${escapeHtml(p.icon)}"></i></span>
+          <span class="pp-category-filter-text">${escapeHtml(p.name)}</span>
+          <span class="pp-category-filter-count">${toPersianDigits(p.count)}</span>
         </button>
       `).join("");
     }

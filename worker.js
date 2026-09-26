@@ -90,12 +90,23 @@ function addSecurityHeaders(response) {
   headers.set('cross-origin-resource-policy', 'same-site');
   headers.set('content-security-policy', "default-src 'self'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; object-src 'none'; script-src 'self' https://cdn.tailwindcss.com 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com font-src 'self' https://cdnjs.cloudflare.com data:; img-src 'self' data: blob: https:; connect-src 'self'; media-src 'self' blob:; worker-src 'self' blob:");
   headers.set('strict-transport-security', 'max-age=31536000; includeSubDomains');
+  headers.set('x-dns-prefetch-control', 'off');
+  headers.set('x-permitted-cross-domain-policies', 'none');
+  headers.set('origin-agent-cluster', '?1');
   return new Response(response.body, { status: response.status, statusText: response.statusText, headers });
+}
+
+function isSameOriginMutation(request, url) {
+  if (!['POST','PUT','PATCH','DELETE'].includes(request.method.toUpperCase())) return true;
+  const origin = request.headers.get('Origin');
+  if (!origin) return true;
+  try { return new URL(origin).origin === url.origin; } catch (_) { return false; }
 }
 
 function matchApi(url, request) {
   const p = url.pathname;
   const method = request.method.toUpperCase();
+  if (p.startsWith('/api/admin/') && !isSameOriginMutation(request, url)) return [() => bad('درخواست ناامن رد شد.', 403), {}];
 
   if (p === '/api/health' && method === 'GET') return [healthHandler, {}];
   if (p === '/api/store' && method === 'GET') return [getStore, {}];
