@@ -1,4 +1,4 @@
-import { bad, createSession, getStore, json, passwordHash, randomHex, sha256Hex, sessionCookie, verifyPassword } from '../_shared.js';
+import { bad, createSession, json, passwordHash, randomHex, sha256Hex, sessionCookie, verifyPassword } from '../_shared.js';
 
 const MAX_FAILS = 5;
 const LOCK_MS = 10 * 60 * 1000;
@@ -11,21 +11,108 @@ const LEGACY_HASH = '8b33a7c02624ca443f6950b64a1dd5e162ad611474c1695916038333555
 const LEGACY_DEFAULT_PASSWORD_SHA256 = '240be518fabd2724ddb6f04eeb1da5967448d7e831c08c8fa822809f74c720a9';
 const CURRENT_DEFAULT_HASH = 'a8884f6291a2fa0d1c8ed3a8b0a13e0d0a94b65e7fca77194d66b1b5cd853688';
 
+async function readColumns(db, tableName) {
+  const safe = String(tableName).replace(/[^A-Za-z0-9_]/g, '');
+  const result = await db.prepare(`PRAGMA table_info("${safe}")`).all();
+  return new Set((result?.results || []).map(row => String(row.name || '').toLowerCase()));
+}
+
+async function tableExists(db, tableName) {
+  const row = await db.prepare('SELECT name FROM sqlite_master WHERE type = \'table\' AND name = ? LIMIT 1').bind(tableName).first();
+  return Boolean(row?.name);
+}
+
 async function ensureAuthTables(db) {
-  await db.prepare(`CREATE TABLE IF NOT EXISTS login_attempts (
-    key TEXT PRIMARY KEY,
-    fail_count INTEGER NOT NULL DEFAULT 0,
-    locked_until INTEGER NOT NULL DEFAULT 0,
+  // The public site has lived through multiple schema revisions. D1's
+  // CREATE TABLE IF NOT EXISTS does not repair a table whose shape is wrong,
+  // so sessions/login_attempts are rebuilt when their required columns are missing.
+  await db.prepare(`CREATE TABLE IF NOT EXISTS admins (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    username TEXT NOT NULL UNIQUE,
+    password_hash TEXT NOT NULL,
+    password_salt TEXT NOT NULL,
+    created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL
   )`).run();
 
-  await db.prepare(`CREATE TABLE IF NOT EXISTS sessions (
-    token_hash TEXT PRIMARY KEY,
-    admin_id INTEGER NOT NULL,
-    expires_at INTEGER NOT NULL,
-    created_at TEXT NOT NULL
-  )`).run();
+  let adminCols = await readColumns(db, 'admins');
+  const adminRequired = ['id', 'username', 'password_hash', 'password_salt', 'created_at', 'updated_at'];
+  for (const col of adminRequired.slice(1)) {
+    if (adminCols.has(col)) continue;
+    const type = col.includes('at') ? "TEXT NOT NULL DEFAULT ''" : "TEXT NOT NULL DEFAULT ''";
+    await db.prepare(`ALTER TABLE admins ADD COLUMN ${col} ${type}`).run();
+  }
+  adminCols = await readColumns(db, 'admins');
+
+  if (!(await tableExists(db, 'login_attempts'))) {
+    await db.prepare(`CREATE TABLE login_attempts (
+      key TEXT PRIMARY KEY,
+      fail_count INTEGER NOT NULL DEFAULT 0,
+      locked_until INTEGER NOT NULL DEFAULT 0,
+      updated_at TEXT NOT NULL
+    )`).run();
+  } else {
+    const cols = await readColumns(db, 'login_attempts');
+    const required = ['key', 'fail_count', 'locked_until', 'updated_at'];
+    const incompatible = required.some(c => !cols.has(c));
+    if (incompatible) {
+      await db.prepare('DROP TABLE login_attempts').run();
+      await db.prepare(`CREATE TABLE login_attempts (
+        key TEXT PRIMARY KEY,
+        fail_count INTEGER NOT NULL DEFAULT 0,
+        locked_until INTEGER NOT NULL DEFAULT 0,
+        updated_at TEXT NOT NULL
+      )`).run();
+    }
+  }
+
+  // Session tokens are disposable. Rebuilding this table is safe and repairs
+  // old versions that used a different primary key/column layout.
+  if (!(await tableExists(db, 'sessions'))) {
+    await db.prepare(`CREATE TABLE sessions (
+      token_hash TEXT PRIMARY KEY,
+      admin_id INTEGER NOT NULL,
+      expires_at INTEGER NOT NULL,
+      created_at TEXT NOT NULL,
+      FOREIGN KEY (admin_id) REFERENCES admins(id) ON DELETE CASCADE
+    )`).run();
+  } else {
+    const cols = await readColumns(db, 'sessions');
+    const required = ['token_hash', 'admin_id', 'expires_at', 'created_at'];
+    const incompatible = required.some(c => !cols.has(c));
+    if (incompatible) {
+      await db.prepare('DROP TABLE sessions').run();
+      await db.prepare(`CREATE TABLE sessions (
+        token_hash TEXT PRIMARY KEY,
+        admin_id INTEGER NOT NULL,
+        expires_at INTEGER NOT NULL,
+        created_at TEXT NOT NULL,
+        FOREIGN KEY (admin_id) REFERENCES admins(id) ON DELETE CASCADE
+      )`).run();
+    }
+  }
+
+  await db.prepare('CREATE INDEX IF NOT EXISTS idx_sessions_admin ON sessions(admin_id)').run();
+  await db.prepare('CREATE INDEX IF NOT EXISTS idx_sessions_expiry ON sessions(expires_at)').run();
+  await db.prepare('CREATE INDEX IF NOT EXISTS idx_login_attempts_locked ON login_attempts(locked_until)').run();
+
+  const existing = await db.prepare('SELECT id, password_hash, password_salt FROM admins WHERE username = ? LIMIT 1').bind('admin').first();
+  const now = new Date().toISOString();
+  if (!existing) {
+    await db.prepare(`INSERT INTO admins
+      (username, password_hash, password_salt, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?)`
+    ).bind('admin', CURRENT_DEFAULT_HASH, LEGACY_SALT, now, now).run();
+  } else if (
+    !String(existing.password_hash || '').trim() ||
+    !String(existing.password_salt || '').trim() ||
+    (String(existing.password_hash).toLowerCase() === LEGACY_HASH && String(existing.password_salt).toLowerCase() === LEGACY_SALT)
+  ) {
+    await db.prepare('UPDATE admins SET password_hash=?, password_salt=?, updated_at=? WHERE id=?')
+      .bind(CURRENT_DEFAULT_HASH, LEGACY_SALT, now, existing.id).run();
+  }
 }
+
 
 export async function onRequestPost(context) {
   const db = context?.env?.DB;
@@ -126,15 +213,11 @@ export async function onRequestPost(context) {
       }
     }
 
-    let store = null;
-    try { store = await getStore(db); }
-    catch (storeError) { console.error('PetRaPet post-login store load error:', storeError); }
-
-    return json({ ok: true, username: admin.username, ...(store ? { store } : {}) }, 200, {
+    return json({ ok: true, username: admin.username }, 200, {
       'Set-Cookie': sessionCookie(session.raw)
     });
   } catch (error) {
     console.error('PetRaPet login error:', error);
-    return bad('خطای داخلی سرور هنگام ورود. D1 binding و جدول‌های admins/sessions را بررسی کنید.', 500);
+    return bad('ساختار احراز هویت D1 قابل استفاده نیست. جدول‌های admins، sessions و login_attempts را با فایل d1-admin-repair-v3.sql تعمیر کنید.', 500);
   }
 }
