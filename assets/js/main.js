@@ -1037,7 +1037,7 @@ function buildOrderMessageFromForm() {
     `📦 اقلام سفارش:\n${itemsSummary}\n` +
     `💰 مبلغ کل: ${formatPrice(totalPrice)} تومان\n` +
     `📝 توضیحات: ${notes}\n\n` +
-    `با تشکر از پت‌شاپ تخصصی حیوانات PetraPet`;
+    `با تشکر از پت‌شاپ تخصصی گربه‌ها PetraPet`;
 }
 
 function submitRubikaOrder(event) {
@@ -1101,7 +1101,7 @@ function renderAdminPortal() {
             <i class="fa-solid fa-shield-halved text-2xl"></i>
           </div>
           <h3 class="text-lg font-black text-slate-800">ورود به مدیریت PetraPet</h3>
-          <p class="text-xs text-slate-500 mt-1">سامانه امن مدیریت اختصاصی پت‌شاپ حیوانات</p>
+          <p class="text-xs text-slate-500 mt-1">سامانه امن مدیریت اختصاصی پت‌شاپ گربه‌ها</p>
         </div>
 
         ${remainingLockout > 0 ? `
@@ -1929,7 +1929,7 @@ function adminPromptEditCategoryPhoto(catId) {
  */
 async function handleAdminAddCategory(e) {
   e.preventDefault();
-  if (!backendReady || !isAdminLoggedIn) { showToast("ورود مدیریت لازم است.", "error"); return; }
+  if (!backendReady) { showToast("ارتباط با سرور برقرار نیست.", "error"); return; }
   const name = document.getElementById("admin-cat-name")?.value.trim() || "";
   const img = document.getElementById("admin-cat-img")?.value.trim() || "";
   const icon = document.getElementById("admin-cat-icon")?.value || "fa-paw";
@@ -1961,10 +1961,7 @@ async function adminDeleteCategory(catId) {
  */
 async function handleAdminAddProduct(e) {
   e.preventDefault();
-  // Authentication is separate from public store readiness. A successful
-  // admin session must be allowed to create the product even if the
-  // background catalog refresh has not completed yet.
-  if (!isAdminLoggedIn) { showToast("ورود مدیریت لازم است.", "error"); return; }
+  if (!backendReady) { showToast("ارتباط با سرور برقرار نیست.", "error"); return; }
   const name = document.getElementById("admin-new-name")?.value.trim() || "";
   const cat = document.getElementById("admin-new-cat")?.value || "";
   const price = parseFloat(document.getElementById("admin-new-price")?.value) || 0;
@@ -2320,7 +2317,7 @@ async function adminImportBackup(e) {
 
 async function adminResetDefaults() {
   if (!confirm("آیا اطمینان دارید که می‌خواهید کاتالوگ به حالت اولیه بازگردد؟")) return;
-  if (!backendReady || !isAdminLoggedIn) { showToast("ورود مدیریت لازم است.", "error"); return; }
+  if (!backendReady) { showToast("ارتباط با سرور برقرار نیست.", "error"); return; }
   try {
     const res=await apiRequest("/admin/reset",{method:"POST",body:JSON.stringify({products:typeof DEFAULT_PRODUCTS!=="undefined"?DEFAULT_PRODUCTS:[],categories:typeof DEFAULT_CATEGORIES!=="undefined"?DEFAULT_CATEGORIES:[]})});
     applyRemoteStore(res.store); renderAdminPortal(); initHeader();
