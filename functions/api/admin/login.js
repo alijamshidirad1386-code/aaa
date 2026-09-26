@@ -96,20 +96,27 @@ async function ensureAuthTables(db) {
   await db.prepare('CREATE INDEX IF NOT EXISTS idx_sessions_expiry ON sessions(expires_at)').run();
   await db.prepare('CREATE INDEX IF NOT EXISTS idx_login_attempts_locked ON login_attempts(locked_until)').run();
 
-  const existing = await db.prepare('SELECT id, password_hash, password_salt FROM admins WHERE username = ? LIMIT 1').bind('admin').first();
+  const existing = await db.prepare('SELECT id, username, password_hash, password_salt FROM admins WHERE LOWER(username) = LOWER(?) ORDER BY id LIMIT 1').bind('admin').first();
   const now = new Date().toISOString();
   if (!existing) {
     await db.prepare(`INSERT INTO admins
       (username, password_hash, password_salt, created_at, updated_at)
       VALUES (?, ?, ?, ?, ?)`
     ).bind('admin', CURRENT_DEFAULT_HASH, LEGACY_SALT, now, now).run();
-  } else if (
-    !String(existing.password_hash || '').trim() ||
-    !String(existing.password_salt || '').trim() ||
-    (String(existing.password_hash).toLowerCase() === LEGACY_HASH && String(existing.password_salt).toLowerCase() === LEGACY_SALT)
-  ) {
-    await db.prepare('UPDATE admins SET password_hash=?, password_salt=?, updated_at=? WHERE id=?')
-      .bind(CURRENT_DEFAULT_HASH, LEGACY_SALT, now, existing.id).run();
+  } else {
+    const storedHash = String(existing.password_hash || '').trim().toLowerCase();
+    const storedSalt = String(existing.password_salt || '').trim().toLowerCase();
+    const needsDefaultRepair = storedSalt === LEGACY_SALT && storedHash !== CURRENT_DEFAULT_HASH;
+    const needsFieldRepair = !storedHash || !storedSalt;
+    if (needsDefaultRepair || needsFieldRepair || (storedHash === LEGACY_HASH && storedSalt === LEGACY_SALT)) {
+      await db.prepare('UPDATE admins SET username=?, password_hash=?, password_salt=?, updated_at=? WHERE id=?')
+        .bind('admin', CURRENT_DEFAULT_HASH, LEGACY_SALT, now, existing.id).run();
+    } else if (String(existing.username || '') !== 'admin' && storedSalt === LEGACY_SALT) {
+      // Canonicalize the original default account username without touching accounts
+      // that have been moved to a new username (those receive a fresh random salt).
+      await db.prepare('UPDATE admins SET username=?, updated_at=? WHERE id=?')
+        .bind('admin', now, existing.id).run();
+    }
   }
 }
 
@@ -119,7 +126,7 @@ export async function onRequestPost(context) {
   if (!db) return bad('اتصال Worker به D1 برقرار نیست. Binding با نام DB را بررسی کنید.', 500);
 
   const body = await context.request.json().catch(() => null);
-  const username = String(body?.username ?? '').trim();
+  const username = String(body?.username ?? '').trim().toLowerCase();
   const password = String(body?.password ?? '');
   if (!username || !password) return bad('نام کاربری و رمز عبور الزامی است.', 400);
 
@@ -140,7 +147,7 @@ export async function onRequestPost(context) {
     }
 
     const admin = await db.prepare(
-      'SELECT id, username, password_hash, password_salt FROM admins WHERE username = ? LIMIT 1'
+      'SELECT id, username, password_hash, password_salt FROM admins WHERE LOWER(username) = LOWER(?) LIMIT 1'
     ).bind(username).first();
 
     if (!admin) {
