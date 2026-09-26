@@ -184,3 +184,102 @@ body [class*="font-"]{font-family:'Snaap','Tahoma',sans-serif !important}
 .pp-admin-category-avatar img{width:100%;height:100%;object-fit:cover}
 .pp-admin-category-avatar.is-empty{display:grid;place-items:center;color:#fff;background:linear-gradient(135deg,#ff8a5b,#ff6e9f)}
 @media (max-width:639px){.pp-admin-category-card{align-items:flex-start}.pp-admin-category-avatar{width:48px;height:48px}.pp-admin-category-actions{display:grid!important;grid-template-columns:repeat(2,1fr);gap:5px!important;width:82px}.pp-admin-category-actions label,.pp-admin-category-actions button{justify-content:center;min-width:0}}
+
+
+/* =========================================================
+   PetRaPet V8 — full-card category photography + phone performance pass
+   ========================================================= */
+.pp-category-card{
+  min-height:238px !important;
+  padding:0 !important;
+  isolation:isolate;
+  background:#e8e2ef !important;
+}
+.pp-category-media{
+  position:absolute !important;
+  inset:0 !important;
+  min-height:0 !important;
+  border:0 !important;
+  border-radius:inherit !important;
+  background:#ded7e8 !important;
+  overflow:hidden !important;
+  z-index:0 !important;
+}
+.pp-category-media:before{display:none !important}
+.pp-category-media img{
+  position:absolute !important;
+  inset:0 !important;
+  width:100% !important;
+  height:100% !important;
+  min-width:100% !important;
+  min-height:100% !important;
+  object-fit:cover !important;
+  object-position:center !important;
+  opacity:1 !important;
+  transform:none !important;
+  filter:saturate(1.06) contrast(1.02) !important;
+  transition:transform .3s ease,filter .3s ease !important;
+}
+.pp-category-card:hover .pp-category-media img{transform:scale(1.035) !important;filter:saturate(1.1) contrast(1.03) !important}
+.pp-category-media-shade{
+  position:absolute !important;
+  inset:0 !important;
+  z-index:1 !important;
+  pointer-events:none !important;
+  background:linear-gradient(180deg,rgba(28,21,42,.04) 0%,rgba(28,21,42,.18) 42%,rgba(25,19,39,.78) 100%) !important;
+}
+.pp-category-card-glow{z-index:2 !important;filter:blur(28px) !important;opacity:.22 !important}
+.pp-category-number{z-index:4 !important;top:14px !important;right:15px !important;color:rgba(255,255,255,.84) !important;text-shadow:0 2px 8px rgba(0,0,0,.26) !important}
+.pp-category-copy{position:absolute !important;z-index:4 !important;left:12px !important;right:12px !important;bottom:11px !important;padding:0 !important;color:#fff !important}
+.pp-category-en{color:rgba(255,255,255,.74) !important;text-shadow:0 1px 6px rgba(0,0,0,.28) !important}
+.pp-category-copy h3{color:#fff !important;font-size:15px !important;line-height:1.65 !important;text-shadow:0 2px 8px rgba(0,0,0,.28) !important;margin-top:2px !important}
+.pp-category-meta{margin-top:5px !important;color:rgba(255,255,255,.82) !important}
+.pp-category-meta b,.pp-category-meta i{color:#fff !important;text-shadow:0 1px 5px rgba(0,0,0,.24)}
+.pp-category-icon{
+  position:absolute !important;
+  z-index:4 !important;
+  top:13px !important;
+  left:13px !important;
+  width:46px !important;
+  height:46px !important;
+  border-radius:15px !important;
+  background:rgba(255,255,255,.82) !important;
+  color:var(--pp-accent) !important;
+  box-shadow:0 9px 22px rgba(30,22,44,.18),inset 0 1px 0 rgba(255,255,255,.9) !important;
+  backdrop-filter:blur(8px) !important;
+  -webkit-backdrop-filter:blur(8px) !important;
+}
+
+/* Mobile: keep the visual depth but remove expensive blur/transitions that can stutter on mid-range phones. */
+@media (max-width:700px){
+  .pp-category-card{min-height:188px !important;border-radius:24px !important;box-shadow:0 8px 0 rgba(47,39,62,.035),0 16px 24px rgba(47,39,62,.08) !important}
+  .pp-category-copy{left:10px !important;right:10px !important;bottom:9px !important}
+  .pp-category-copy h3{font-size:12px !important}
+  .pp-category-en{font-size:6.5px !important}
+  .pp-category-meta{font-size:8px !important;margin-top:3px !important}
+  .pp-category-icon{top:10px !important;left:10px !important;width:38px !important;height:38px !important;border-radius:13px !important;font-size:14px !important;backdrop-filter:none !important;-webkit-backdrop-filter:none !important}
+  .pp-category-card:hover{transform:none !important}
+  .pp-category-card:hover .pp-category-media img{transform:none !important}
+  .pp-category-media-shade{background:linear-gradient(180deg,rgba(28,21,42,.02),rgba(25,19,39,.76)) !important}
+  #home-hero-premium.pp-rainbow-hero .pp-cat-card,
+  #home-hero-premium.pp-rainbow-hero .pp-color-wheel,
+  .glass-nav,
+  .fox-mobile-bottom-nav,
+  .pp-category-icon{
+    backdrop-filter:none !important;
+    -webkit-backdrop-filter:none !important;
+  }
+  #home-hero-premium.pp-rainbow-hero .pp-cat-card{box-shadow:10px 12px 0 rgba(44,39,59,.04),0 20px 34px rgba(51,41,70,.10) !important}
+  main > section,
+  footer{contain:layout paint !important}
+}
+@media (max-width:420px){
+  .pp-category-card{min-height:166px !important;border-radius:21px !important}
+  .pp-category-copy{bottom:8px !important}
+  .pp-category-copy h3{font-size:11px !important}
+  .pp-category-icon{width:34px !important;height:34px !important;border-radius:11px !important;font-size:12px !important}
+}
+@media (prefers-reduced-motion: reduce){
+  .pp-category-media img,.pp-category-card,.pp-category-meta i{transition:none !important}
+  #home-hero-premium.pp-rainbow-hero *{animation-duration:0.001ms !important;animation-iteration-count:1 !important}
+}
