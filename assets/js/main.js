@@ -1155,7 +1155,7 @@ function renderAdminPortal() {
 
         <div class="mt-4 pt-4 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-400">
           <span class="flex items-center gap-1"><i class="fa-solid fa-shield-check text-emerald-500"></i> محافظت ضد Brute-force</span>
-          <span>نسخه پایدار v2.4</span>
+          <span>نسخه پایدار v2.5</span>
         </div>
       </div>
     `;
