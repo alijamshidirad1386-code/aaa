@@ -172,7 +172,10 @@ function normalizeDetails(row) {
 }
 
 export async function ensureExtendedSchema(db) {
-  if (!db || extendedSchemaReady) return;
+  if (!db) throw new Error('D1 binding is missing');
+  if (extendedSchemaReady) return;
+  if (extendedSchemaPromise) return extendedSchemaPromise;
+  extendedSchemaPromise = (async () => {
 
   // D1 can survive several deployments. Migrate legacy tables one statement at a time
   // so one incompatible old column never turns the admin review API into a generic 500.
@@ -249,7 +252,27 @@ export async function ensureExtendedSchema(db) {
   await exec(`INSERT OR IGNORE INTO settings(key,value,updated_at) VALUES ('authenticityPolicy','"اطلاعات اصالت و مستندات هر محصول فقط در صورت ثبت و قابل ارائه بودن نمایش داده می‌شود."',datetime('now'))`);
   await exec(`INSERT OR IGNORE INTO foxshop_migrations(id, applied_at) VALUES('remove_telegram_setting', datetime('now'))`);
   await exec(`DELETE FROM settings WHERE key='telegramUser'`);
+
+  // Hot read paths used by the storefront. D1 documents indexes as a primary
+  // lever for reducing scanned rows and therefore latency/cost.
+  await db.batch([
+    db.prepare('CREATE INDEX IF NOT EXISTS idx_categories_sort ON categories(sort_order, created_at)'),
+    db.prepare('CREATE INDEX IF NOT EXISTS idx_products_category_created ON products(category_id, created_at DESC)'),
+    db.prepare('CREATE INDEX IF NOT EXISTS idx_products_featured ON products(is_featured, created_at DESC)'),
+    db.prepare('CREATE INDEX IF NOT EXISTS idx_products_bestseller ON products(is_best_seller, created_at DESC)'),
+    db.prepare('CREATE INDEX IF NOT EXISTS idx_products_new ON products(is_new, created_at DESC)'),
+    db.prepare('CREATE INDEX IF NOT EXISTS idx_reviews_product_approved_created ON product_reviews(product_id, approved, created_at DESC)')
+  ]);
+  try { await db.prepare('PRAGMA optimize').run(); } catch (_) {}
+
   extendedSchemaReady = true;
+  })();
+
+  try {
+    await extendedSchemaPromise;
+  } finally {
+    extendedSchemaPromise = null;
+  }
 }
 
 
@@ -296,13 +319,13 @@ export async function ensureReviewSchema(db) {
 
 export async function getStore(db) {
   await ensureExtendedSchema(db);
-  const [cats, prods, details, reviews, stories, rows] = await Promise.all([
-    db.prepare('SELECT id,name,slug,image,image_key AS imageKey,icon,color,sort_order AS sortOrder FROM categories ORDER BY sort_order ASC, created_at ASC').all(),
-    db.prepare('SELECT id,name,category_id AS categoryId,stock_status AS stockStatus,original_price AS originalPrice,discount_percent AS discountPercent,final_price AS finalPrice,is_featured AS isFeatured,is_best_seller AS isBestSeller,is_new AS isNew,image,image_key AS imageKey,short_desc AS shortDesc,full_desc AS fullDesc FROM products ORDER BY created_at DESC').all(),
-    db.prepare('SELECT * FROM product_details').all(),
-    db.prepare('SELECT id,product_id AS productId,customer_name AS customerName,rating,review_text AS reviewText,photo_url AS photoUrl,created_at AS createdAt FROM product_reviews WHERE approved=1 ORDER BY created_at DESC').all(),
-    db.prepare('SELECT id,customer_name AS customerName,cat_name AS catName,photo_url AS photoUrl,quote,created_at AS createdAt FROM customer_stories WHERE approved=1 ORDER BY created_at DESC').all(),
-    db.prepare('SELECT key,value FROM settings').all()
+  const [cats, prods, details, reviews, stories, rows] = await db.batch([
+    db.prepare('SELECT id,name,slug,image,image_key AS imageKey,icon,color,sort_order AS sortOrder FROM categories ORDER BY sort_order ASC, created_at ASC'),
+    db.prepare('SELECT id,name,category_id AS categoryId,stock_status AS stockStatus,original_price AS originalPrice,discount_percent AS discountPercent,final_price AS finalPrice,is_featured AS isFeatured,is_best_seller AS isBestSeller,is_new AS isNew,image,image_key AS imageKey,short_desc AS shortDesc,full_desc AS fullDesc FROM products ORDER BY created_at DESC'),
+    db.prepare('SELECT product_id,slug,brand,weight,volume,flavor,suitable_age,goals,ingredients,nutrition_analysis,country,barcode,expiry_date,usage_method,warranty,storage,authenticity,actual_stock,min_stock,restock_time,rating,review_count,sales_count,more_images_json,faq_json,related_ids_json,tags_json,consumable,created_at,updated_at FROM product_details'),
+    db.prepare('SELECT id,product_id AS productId,customer_name AS customerName,rating,review_text AS reviewText,photo_url AS photoUrl,created_at AS createdAt FROM product_reviews WHERE approved=1 ORDER BY created_at DESC'),
+    db.prepare('SELECT id,customer_name AS customerName,cat_name AS catName,photo_url AS photoUrl,quote,created_at AS createdAt FROM customer_stories WHERE approved=1 ORDER BY created_at DESC'),
+    db.prepare('SELECT key,value FROM settings')
   ]);
 
   const detailsByProduct = {};
