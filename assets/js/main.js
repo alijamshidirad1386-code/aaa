@@ -8,7 +8,6 @@ const INSTAGRAM_URL = "https://www.instagram.com/petra_petclinic?stkn=MTVmM2Q4ZG
 const SUPPORT_PHONE = "09960494973";
 
 // Storage Keys
-const LS_PRODUCTS = "foxshop_products_data";
 const LS_CATEGORIES = "foxshop_categories_data";
 const LS_CART = "foxshop_cart_data";
 const LS_SETTINGS = "foxshop_settings_data";
@@ -169,7 +168,7 @@ function applyRemoteStore(store) {
   return true;
 }
 
-const FOXSHOP_STORE_CACHE_KEY = "foxshop_store_cache_v1";
+const FOXSHOP_STORE_CACHE_KEY = "foxshop_store_cache_v3";
 const FOXSHOP_STORE_CACHE_TTL = 30000;
 
 function readPetraPetStoreCache() {
@@ -222,7 +221,7 @@ async function checkRemoteAdminSession() {
     if (data.authenticated) {
       isAdminLoggedIn = true;
       adminUsername = data.username || DEFAULT_ADMIN_USERNAME;
-      applyRemoteStore(data.store);
+      refreshRemoteStore().catch(() => {});
     }
   } catch (_) {
     // Not logged in or backend is unavailable; public catalog fallback remains active.
@@ -230,7 +229,7 @@ async function checkRemoteAdminSession() {
 }
 
 async function initStorage() {
-  // Paint from local/default catalog immediately. The remote D1 catalog refreshes in the background.
+  // Paint categories from local defaults immediately; products are always sourced from D1 and intentionally start empty.
   let localReady = false;
   try {
     const savedCats = localStorage.getItem(LS_CATEGORIES);
@@ -238,13 +237,6 @@ async function initStorage() {
     if (!categories.length) {
       categories = normalizeCategories(savedCats ? JSON.parse(savedCats) : null);
       if (!categories.length) categories = normalizeCategories(defaultCats);
-    }
-
-    const savedProds = localStorage.getItem(LS_PRODUCTS);
-    const defaultProds = (typeof DEFAULT_PRODUCTS !== "undefined") ? [...DEFAULT_PRODUCTS] : [];
-    if (!products.length) {
-      products = normalizeProducts(savedProds ? JSON.parse(savedProds) : null);
-      if (!products.length) products = normalizeProducts(defaultProds);
     }
 
     const savedSettings = localStorage.getItem(LS_SETTINGS);
@@ -258,7 +250,7 @@ async function initStorage() {
   } catch (err) {
     console.warn("Local catalog bootstrap error:", err);
     categories = normalizeCategories(typeof DEFAULT_CATEGORIES !== "undefined" ? DEFAULT_CATEGORIES : []);
-    products = normalizeProducts(typeof DEFAULT_PRODUCTS !== "undefined" ? DEFAULT_PRODUCTS : []);
+    products = [];
     settings.freeShippingThreshold = 3900000;
     localReady = categories.length > 0 || products.length > 0;
   }
@@ -268,7 +260,7 @@ async function initStorage() {
     cart = normalizeCart(savedCart ? JSON.parse(savedCart) : []);
   } catch { cart = []; }
 
-  // Let the page render immediately from local/default data.
+  // Let the page render immediately from local category data.
   if (localReady && !window.__FOXSHOP_STORE_READY__) {
     window.__FOXSHOP_STORE_READY__ = true;
     window.__FOXSHOP_STORE_LOADING__ = false;
@@ -1441,34 +1433,22 @@ function renderAdminTabContent() {
             ${categories.map(cat => {
               const catProds = products.filter(p => p.categoryId === cat.id);
               return `
-                <div class="p-3 bg-slate-50 rounded-2xl border border-slate-200 flex items-center justify-between text-xs hover:bg-orange-50/40 transition">
-                  <div class="flex items-center gap-3">
-                    <div class="w-12 h-12 rounded-xl overflow-hidden bg-white border border-slate-200 relative shrink-0 shadow-sm">
-                      ${cat.image ? `
-                        <img src="${cat.image}" class="w-full h-full object-cover" alt="${escapeHtml(cat.name)}" loading="lazy" decoding="async">
-                      ` : `
-                        <div class="w-full h-full bg-gradient-to-br ${cat.color || 'from-orange-500 to-amber-500'} flex items-center justify-center text-white">
-                          <i class="fa-solid ${cat.icon || 'fa-paw'} text-base"></i>
-                        </div>
-                      `}
-                      <span class="absolute bottom-0.5 right-0.5 w-4 h-4 rounded-full bg-white/90 text-orange-600 flex items-center justify-center text-[9px] shadow">
-                        <i class="fa-solid ${cat.icon || 'fa-paw'}"></i>
-                      </span>
+                <div class="pp-admin-category-card">
+                  <div class="flex items-center gap-3 min-w-0">
+                    <div class="pp-admin-category-avatar ${cat.image ? '' : 'is-empty'}">
+                      ${cat.image ? `<img src="${escapeHtml(cat.image)}" alt="${escapeHtml(cat.name)}" loading="lazy" decoding="async">` : `<i class="fa-solid ${cat.icon || 'fa-paw'} text-base"></i>`}
                     </div>
-
-                    <div>
-                      <p class="font-black text-slate-800 text-xs">${escapeHtml(cat.name)}</p>
-                      <p class="text-[10px] text-slate-400 mt-0.5 flex items-center gap-1"><i class="fa-solid fa-fingerprint text-orange-300"></i> شناسه خودکار</p>
-                      <div class="flex items-center gap-2 mt-1">
-                        <span class="bg-white px-2 py-0.5 rounded-md border text-[10px] text-slate-600 font-bold">
-                          ${toPersianDigits(catProds.length)} محصول
-                        </span>
-                        ${cat.image ? '<span class="text-[9px] text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded font-semibold"><i class="fa-solid fa-image"></i> دارای تصویر WebP</span>' : '<span class="text-[9px] text-slate-400">بدون تصویر</span>'}
+                    <div class="min-w-0">
+                      <div class="flex items-center gap-2 flex-wrap">
+                        <p class="font-black text-slate-800 text-xs truncate">${escapeHtml(cat.name)}</p>
+                        <span class="text-[9px] px-2 py-0.5 rounded-full bg-orange-50 text-orange-700 font-bold">${toPersianDigits(catProds.length)} کالا</span>
                       </div>
+                      <p class="text-[9px] text-slate-400 mt-1 truncate"><i class="fa-solid fa-fingerprint text-orange-300 ml-1"></i>${escapeHtml(cat.slug || 'CAT COLLECTION')}</p>
+                      <span class="inline-flex mt-1.5 text-[8px] font-bold px-2 py-0.5 rounded-full ${cat.image ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-400'}">${cat.image ? 'تصویر متصل است' : 'بدون تصویر'}</span>
                     </div>
                   </div>
 
-                  <div class="flex items-center gap-1.5 shrink-0">
+                  <div class="pp-admin-category-actions flex items-center gap-1.5 shrink-0">
                     <label class="px-2.5 py-1.5 rounded-xl bg-orange-50 border border-orange-200 text-orange-700 hover:bg-orange-100 text-[11px] font-bold transition cursor-pointer flex items-center gap-1.5 shadow-sm active:scale-95" title="انتخاب مستقیم عکس WebP از حافظه دستگاه">
                       <i class="fa-solid fa-cloud-arrow-up text-orange-600"></i>
                       <span class="hidden sm:inline">آپلود WebP</span>
@@ -1951,7 +1931,7 @@ async function handleAdminAddCategory(e) {
   e.preventDefault();
   if (!backendReady || !isAdminLoggedIn) { showToast("ورود مدیریت لازم است.", "error"); return; }
   const name = document.getElementById("admin-cat-name")?.value.trim() || "";
-  const img = document.getElementById("admin-cat-img")?.value.trim() || "https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?auto=format&fit=crop&w=400&q=80&fm=webp";
+  const img = document.getElementById("admin-cat-img")?.value.trim() || "";
   const icon = document.getElementById("admin-cat-icon")?.value || "fa-paw";
   const color = document.getElementById("admin-cat-color")?.value || "from-orange-500 to-amber-500";
   const imageKey = document.getElementById("admin-cat-img-key")?.value || "";
@@ -1987,7 +1967,7 @@ async function handleAdminAddProduct(e) {
   const price = parseFloat(document.getElementById("admin-new-price")?.value) || 0;
   const discount = parseInt(document.getElementById("admin-new-discount")?.value, 10) || 0;
   const stock = document.getElementById("admin-new-stock")?.value || "in_stock";
-  const img = document.getElementById("admin-new-img")?.value.trim() || "https://images.unsplash.com/photo-1589924691995-400dc9ecc119?auto=format&fit=crop&w=600&q=80";
+  const img = document.getElementById("admin-new-img")?.value.trim() || "";
   const imageKey = document.getElementById("admin-new-img-key")?.value || "";
   const fileInput = document.getElementById("admin-product-file");
   const desc = document.getElementById("admin-new-desc")?.value.trim() || "";
@@ -2266,7 +2246,8 @@ async function handleAdminLogin(event) {
   const passInput = document.getElementById("admin-password-input")?.value || "";
   try {
     const data = await apiRequest("/admin/login", { method:"POST", body:JSON.stringify({username:usernameInput,password:passInput}) });
-    isAdminLoggedIn = true; adminUsername = data.username || usernameInput; applyRemoteStore(data.store);
+    isAdminLoggedIn = true; adminUsername = data.username || usernameInput;
+    refreshRemoteStore().catch(() => {});
     showToast("ورود موفقیت‌آمیز به پنل مدیریت PetraPet 🐾", "success"); renderAdminPortal();
   } catch (err) { showToast(err.message || "نام کاربری یا رمز عبور اشتباه است.", err.status===429 ? "info" : "error"); renderAdminPortal(); }
 }
