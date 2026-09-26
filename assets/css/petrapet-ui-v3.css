@@ -4,7 +4,7 @@
    This file is intentionally loaded last so legacy visual layers cannot fight each other.
 */
 @font-face{
-  font-family:'PetraSnaap';
+  font-family:'Snaap';
   src:url('../fonts/Snapp_0949115100.otf') format('opentype');
   font-style:normal;
   font-weight:100 900;
@@ -42,7 +42,7 @@ body.cat-paw-pattern{
     radial-gradient(circle at 95% 11%,rgba(191,243,227,.23) 0 11rem,transparent 11.2rem),
     radial-gradient(circle at 80% 82%,rgba(255,212,189,.20) 0 10rem,transparent 10.2rem),
     linear-gradient(180deg,#fbf9ff 0%,#fff 48%,#fafcff 100%)!important;
-  font-family:'PetraSnaap','Tahoma',sans-serif!important;
+  font-family:'Snaap','Tahoma',sans-serif!important;
 }
 body::before,body::after{display:none!important}
 
@@ -187,7 +187,7 @@ p,.text-slate-500,.text-slate-600,.text-slate-700{color:#6e6a7b!important}
 
 /* Forms */
 input,textarea,select{
-  font-family:'PetraSnaap','Tahoma',sans-serif!important;
+  font-family:'Snaap','Tahoma',sans-serif!important;
   border-color:rgba(45,38,59,.10)!important;border-radius:15px!important;
   background:rgba(255,255,255,.94)!important;color:#34303e!important;
   box-shadow:inset 0 1px 0 rgba(255,255,255,.8),0 5px 16px rgba(47,37,72,.04)!important;
