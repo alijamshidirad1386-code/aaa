@@ -34,10 +34,28 @@ function contextFor(request, env, executionCtx, params = {}) {
 }
 
 async function healthHandler(context) {
+  let adminTable = false;
+  let adminRecord = false;
+  let sessionsTable = false;
+  if (context.env.DB) {
+    try {
+      const tables = await context.env.DB.prepare(`SELECT name FROM sqlite_master WHERE type='table' AND name IN ('admins','sessions')`).all();
+      const names = new Set((tables?.results || []).map(row => String(row.name || '').toLowerCase()));
+      adminTable = names.has('admins');
+      sessionsTable = names.has('sessions');
+      if (adminTable) {
+        const row = await context.env.DB.prepare(`SELECT id FROM admins WHERE LOWER(username)=LOWER('admin') LIMIT 1`).first();
+        adminRecord = Boolean(row?.id);
+      }
+    } catch (_) {}
+  }
   return new Response(JSON.stringify({
     ok: true,
-    build: 'foxshop-media-edit-v7',
+    build: 'petrapet-v8-auth-mobile',
     d1: !!context.env.DB,
+    adminTable,
+    adminRecord,
+    sessionsTable,
     emailProviderConfigured: Boolean(String(context.env.RESEND_API_KEY || '').trim() && String(context.env.AUTH_EMAIL_FROM || '').trim()),
     authPepperConfigured: String(context.env.AUTH_PEPPER || '').trim().length >= 24,
     webCrypto: !!globalThis.crypto?.subtle,

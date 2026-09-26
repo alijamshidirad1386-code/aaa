@@ -627,7 +627,8 @@
             <span class="pp-category-card-glow" aria-hidden="true"></span>
             <span class="pp-category-number">${String(index + 1).padStart(2, '0')}</span>
             <div class="pp-category-media">
-              ${cat.image ? `<img src="${escapeHtml(cat.image)}" alt="${escapeHtml(cat.name)}" loading="lazy" decoding="async">` : ''}
+              ${cat.image ? `<img src="${escapeHtml(cat.image)}" alt="${escapeHtml(cat.name)}" loading="lazy" decoding="async" fetchpriority="low">` : ''}
+              <span class="pp-category-media-shade" aria-hidden="true"></span>
               <span class="pp-category-icon"><i class="fa-solid ${cat.icon || 'fa-paw'}"></i></span>
             </div>
             <div class="pp-category-copy">
