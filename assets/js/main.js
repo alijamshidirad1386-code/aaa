@@ -1759,7 +1759,8 @@ async function handleAdminFileToInput(fileInputId, targetInputId, previewWrapper
   const targetInput = document.getElementById(targetInputId);
   const previewWrapper = document.getElementById(previewWrapperId);
   if (!fileInput?.files?.[0]) return;
-  if (!backendReady || !isAdminLoggedIn) { showToast("لطفاً ابتدا وارد پنل مدیریت شوید.", "error"); return; }
+  if (!isAdminLoggedIn) { await checkRemoteAdminSession(); }
+  if (!isAdminLoggedIn) { showToast("لطفاً ابتدا وارد پنل مدیریت شوید.", "error"); return; }
 
   const file = fileInput.files[0];
   fileInput.dataset.uploading = "1";
@@ -1868,7 +1869,8 @@ async function compressImageBlob(file, maxWidth = 1000, maxHeight = 1000, qualit
  */
 async function handleDirectCategoryFileUpload(catId, inputEl) {
   if (!inputEl?.files?.[0]) return;
-  if (!backendReady || !isAdminLoggedIn) { showToast("لطفاً ابتدا وارد پنل مدیریت شوید.", "error"); return; }
+  if (!isAdminLoggedIn) { await checkRemoteAdminSession(); }
+  if (!isAdminLoggedIn) { showToast("لطفاً ابتدا وارد پنل مدیریت شوید.", "error"); return; }
   const cat = categories.find(c => c.id === catId); if (!cat) return;
   showToast(`در حال فشرده‌سازی و ذخیره عکس «${cat.name}» در دیتابیس...`, "info");
   try {
@@ -2133,7 +2135,8 @@ function openAdminProductEditor(productId) {
 async function handleAdminEditProductFile(inputEl) {
   const file = inputEl?.files?.[0];
   if (!file) return;
-  if (!backendReady || !isAdminLoggedIn) { showToast('لطفاً ابتدا وارد پنل مدیریت شوید.', 'error'); return; }
+  if (!isAdminLoggedIn) { await checkRemoteAdminSession(); }
+  if (!isAdminLoggedIn) { showToast('لطفاً ابتدا وارد پنل مدیریت شوید.', 'error'); return; }
   const status = document.getElementById('edit-prod-upload-status');
   try {
     if (status) status.textContent = 'در حال فشرده‌سازی...';
@@ -2159,7 +2162,8 @@ async function handleAdminEditProductFile(inputEl) {
 
 async function handleAdminEditProduct(event, productId) {
   event.preventDefault();
-  if (!backendReady || !isAdminLoggedIn) { showToast('ورود مدیریت لازم است.', 'error'); return; }
+  if (!isAdminLoggedIn) { await checkRemoteAdminSession(); }
+  if (!isAdminLoggedIn) { showToast('ورود مدیریت لازم است.', 'error'); return; }
   const prod = products.find(p => p.id === productId);
   if (!prod) { showToast('محصول موردنظر پیدا نشد.', 'error'); return; }
 
