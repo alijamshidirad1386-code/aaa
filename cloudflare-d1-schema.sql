@@ -79,9 +79,8 @@ CREATE TABLE IF NOT EXISTS settings (
 -- Initial admin account.
 -- IMPORTANT: change the initial password immediately from the management panel.
 -- Seed hash uses PBKDF2-HMAC-SHA256 with 100,000 iterations.
-INSERT OR IGNORE INTO admins (id, username, password_hash, password_salt, created_at, updated_at)
+INSERT OR IGNORE INTO admins (username, password_hash, password_salt, created_at, updated_at)
 VALUES (
-  1,
   'admin',
   'a8884f6291a2fa0d1c8ed3a8b0a13e0d0a94b65e7fca77194d66b1b5cd853688',
   'f31a69ce8aec54ac4f6663adb05ead3e',

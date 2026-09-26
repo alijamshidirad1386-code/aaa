@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="preload" href="assets/fonts/Snapp_0949115100.otf" as="font" type="font/otf" crossorigin>
     <link rel="canonical" href="https://PetraPet/">
   <meta property="og:url" content="https://PetraPet/">
   <meta property="og:type" content="website">
@@ -23,13 +24,14 @@
   <link rel="stylesheet" href="assets/css/foxshop-upgrades.css">
   <link rel="stylesheet" href="assets/css/petrapet-theme.css">
   <link rel="stylesheet" href="assets/css/petrapet-ui-v3.css">
+  <link rel="stylesheet" href="assets/css/petrapet-final.css">
 
   <script>
     window.tailwind = window.tailwind || {}; window.tailwind.config = {
       theme: {
         extend: {
           fontFamily: {
-            sans: ['PetraSnaap', 'Tahoma', 'sans-serif'],
+            sans: ['Snaap', 'Tahoma', 'sans-serif'],
           },
           colors: {
             brand: {
@@ -215,36 +217,87 @@
   <!-- MAIN HOMEPAGE CONTENT -->
   <main class="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-14">
 
-    <!-- PETRAPET HERO -->
-    <section id="home-hero-premium" class="petra-hero relative overflow-hidden">
-      <div class="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
-        <div class="lg:col-span-7 space-y-5">
-          <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/65 border-2 border-black font-black text-xs shadow-[5px_5px_0_rgba(19,32,42,.10)]">
-            <i class="fa-solid fa-paw"></i><span>PetraPet؛ خرید ساده برای دوست پشمالوی شما</span>
+    <!-- PETRAPET HERO — seven-color premium cat boutique -->
+    <section id="home-hero-premium" class="pp-rainbow-hero" aria-labelledby="hero-title">
+      <span class="pp-hero-orb pp-orb-1" aria-hidden="true"></span>
+      <span class="pp-hero-orb pp-orb-2" aria-hidden="true"></span>
+      <span class="pp-hero-orb pp-orb-3" aria-hidden="true"></span>
+      <span class="pp-hero-orb pp-orb-4" aria-hidden="true"></span>
+      <span class="pp-hero-orb pp-orb-5" aria-hidden="true"></span>
+      <span class="pp-hero-orb pp-orb-6" aria-hidden="true"></span>
+      <span class="pp-hero-orb pp-orb-7" aria-hidden="true"></span>
+
+      <div class="pp-hero-grid">
+        <div class="pp-hero-copy">
+          <div class="pp-hero-kicker">
+            <span class="pp-kicker-paw"><i class="fa-solid fa-paw"></i></span>
+            <span>فروشگاه تخصصی برای گربه‌های خاص</span>
+            <span class="pp-kicker-dot"></span>
+            <span>PetraPet</span>
           </div>
-          <h1 class="font-black leading-tight">دنیای رنگیِ غذا، بازی و وسایل <span>پتراپت</span></h1>
-          <p class="text-sm sm:text-base leading-8">از غذای روزانه تا اکسسوری و لوازم نگهداری؛ ویترین PetraPet را ببینید، محصول مناسب را انتخاب کنید و از یکی از راه‌های ارتباطی ما سفارشتان را سریع نهایی کنید.</p>
-          <div class="flex flex-wrap gap-3 pt-2">
-            <a href="products.html" class="px-6 py-3.5 rounded-2xl bg-white font-black text-xs sm:text-sm flex items-center gap-2"><i class="fa-solid fa-bag-shopping"></i> ورود به فروشگاه</a>
-            <a href="https://wa.me/989960494973" target="_blank" rel="noopener noreferrer" class="px-6 py-3.5 rounded-2xl bg-[#d8fff2] font-black text-xs sm:text-sm flex items-center gap-2"><i class="fa-brands fa-whatsapp"></i> واتساپ</a>
-            <a href="contact.html" class="px-6 py-3.5 rounded-2xl bg-[#f4ecff] font-black text-xs sm:text-sm flex items-center gap-2"><i class="fa-solid fa-headset"></i> پشتیبانی</a>
+
+          <div class="pp-hero-title-wrap">
+            <span class="pp-hero-mini-label">دنیای رنگارنگِ</span>
+            <h1 id="hero-title">غذا، بازی و مراقبتِ دوست پشمالوی شما</h1>
+            <span class="pp-hero-title-accent">همه‌چیز برای یک زندگی شادتر و شیرین‌تر 🐾</span>
           </div>
-          <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2">
-            <div class="rounded-2xl bg-white/70 border-2 border-black p-3 text-center"><b>ارسال</b><span class="block text-[10px] mt-1">سریع و مطمئن</span></div>
-            <div class="rounded-2xl bg-white/70 border-2 border-black p-3 text-center"><b>انتخاب</b><span class="block text-[10px] mt-1">دسته‌بندی روشن</span></div>
-            <div class="rounded-2xl bg-white/70 border-2 border-black p-3 text-center"><b>مشاوره</b><span class="block text-[10px] mt-1">ارتباط مستقیم</span></div>
-            <div class="rounded-2xl bg-white/70 border-2 border-black p-3 text-center"><b>PetraPet</b><span class="block text-[10px] mt-1">پت‌شاپ آنلاین</span></div>
+
+          <p class="pp-hero-text">
+            از غذای روزانه و تشویقی تا اکسسوری و ملزومات نگهداری؛ محصولات PetraPet را با چند کلیک ببین، مقایسه کن و سریع سفارش بده.
+          </p>
+
+          <div class="pp-hero-actions">
+            <a href="products.html" class="pp-hero-btn pp-btn-primary">
+              <span class="pp-btn-icon"><i class="fa-solid fa-bag-shopping"></i></span>
+              <span>شروع خرید</span>
+              <i class="fa-solid fa-arrow-left pp-btn-arrow"></i>
+            </a>
+            <a href="contact.html" class="pp-hero-btn pp-btn-secondary">
+              <span class="pp-btn-icon"><i class="fa-solid fa-headset"></i></span>
+              <span>مشاوره و پشتیبانی</span>
+            </a>
+          </div>
+
+          <div class="pp-hero-trust-row" aria-label="ویژگی‌های PetraPet">
+            <div class="pp-trust-chip"><span class="pp-trust-number">۰۱</span><span><b>انتخاب آسان</b><small>دسته‌بندی شفاف</small></span></div>
+            <div class="pp-trust-chip"><span class="pp-trust-number">۰۲</span><span><b>ارسال سریع</b><small>هماهنگی مطمئن</small></span></div>
+            <div class="pp-trust-chip"><span class="pp-trust-number">۰۳</span><span><b>ارتباط مستقیم</b><small>پاسخ‌گویی سریع</small></span></div>
           </div>
         </div>
-        <div class="lg:col-span-5 flex justify-center">
-          <div class="fox-hero-brand-card relative w-full max-w-[360px]">
-            <div class="relative aspect-[4/5] p-6 flex flex-col items-center justify-between">
-              <div class="w-full flex justify-between text-xl"><span>🐾</span><span>✦</span><span>🐱</span></div>
-              <div class="w-52 h-52 sm:w-60 sm:h-60 rounded-[42px] bg-white p-8 flex items-center justify-center">
-                <img src="assets/images/petrapet-logo.png" alt="PetraPet Logo" class="max-h-full max-w-full object-contain">
-              </div>
-              <div class="text-center"><p class="text-2xl font-black">PetraPet</p><p class="text-xs font-bold mt-1">پت‌شاپ مدرن و رنگی</p></div>
+
+        <div class="pp-hero-visual">
+          <div class="pp-visual-shadow" aria-hidden="true"></div>
+          <div class="pp-cat-card">
+            <div class="pp-cat-card-top">
+              <span class="pp-pill pp-pill-mint">PetraPet Club</span>
+              <span class="pp-cat-spark"><i class="fa-solid fa-sparkles"></i></span>
             </div>
+            <div class="pp-cat-image-stage">
+              <div class="pp-cat-halo" aria-hidden="true"></div>
+              <img src="assets/images/foxshop-cat-search.webp" alt="گربه در پت‌شاپ PetraPet" loading="eager" decoding="async">
+              <span class="pp-floating-note pp-note-a">🐾 انتخاب خاص</span>
+              <span class="pp-floating-note pp-note-b">✦ خوش‌حال‌تر</span>
+            </div>
+            <div class="pp-cat-card-bottom">
+              <div>
+                <span class="pp-cat-eyebrow">CAT BOUTIQUE</span>
+                <strong>PetraPet</strong>
+                <small>برای پنجه‌های دوست‌داشتنی</small>
+              </div>
+              <div class="pp-logo-mini">
+                <img src="assets/images/petrapet-logo.png" alt="لوگوی PetraPet" loading="eager" decoding="async">
+              </div>
+            </div>
+          </div>
+
+          <div class="pp-color-wheel" aria-hidden="true">
+            <span class="pp-wheel-dot pp-wheel-1"></span>
+            <span class="pp-wheel-dot pp-wheel-2"></span>
+            <span class="pp-wheel-dot pp-wheel-3"></span>
+            <span class="pp-wheel-dot pp-wheel-4"></span>
+            <span class="pp-wheel-dot pp-wheel-5"></span>
+            <span class="pp-wheel-dot pp-wheel-6"></span>
+            <span class="pp-wheel-dot pp-wheel-7"></span>
           </div>
         </div>
       </div>
