@@ -5,7 +5,6 @@
    Deployable directly on Cloudflare Pages / Static Hosting
    ========================================================= */
 
-@import url('https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;600;700;800;900&display=swap');
 
 /* PetRaPet Premium Cat Retail UI — inlined for faster first load (removes one CSS request) */
 /* PetRaPet Premium Cat Retail UI — additive visual layer only */
@@ -942,18 +941,7 @@ footer {
     radial-gradient(circle at 74% 18%, rgba(236,111,169,.10), transparent 22%),
     linear-gradient(145deg,#17111e,#251629 62%,#120d17) !important;
 }
-footer::before {
-  content:"" !important;
-  position:absolute !important;
-  left:8px !important;
-  bottom:0 !important;
-  width:min(240px,30vw) !important;
-  height:300px !important;
-  background:url('../images/petrapet-logo.png') left bottom / contain no-repeat !important;
-  opacity:.98 !important;
-  pointer-events:none !important;
-  transform:none !important;
-}
+footer::before { display:none !important; }
 footer .max-w-7xl { position:relative; z-index:2; }
 
 /* Remove decorative floating corner; it was visually noisy and costly. */
@@ -994,7 +982,7 @@ footer .max-w-7xl { position:relative; z-index:2; }
   --color-accent: #ec4899;
   --color-accent-rose: #f43f5e;
   --color-slate-dark: #0f172a;
-  --font-vazir: 'Vazirmatn', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-vazir: 'PetraSnaap', Tahoma, Arial, sans-serif;
 }
 
 * {

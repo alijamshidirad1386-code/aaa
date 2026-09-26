@@ -1,2 +1,2 @@
-/* PetraPet compatibility layer. Visual styling lives in petrapet-theme.css. */
-.fox-mobile-bottom-nav{z-index:55}
+/* PetraPet v4 compatibility shim. Visual system lives in petrapet-ui-v3.css. */
+.fox-mobile-bottom-nav{z-index:9990!important}
