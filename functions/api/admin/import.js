@@ -12,7 +12,8 @@ import {
   coerceDbValue,
   extractDbError,
   makeCompatibleTextId,
-  getColumnKind
+  getColumnKind,
+  makeUniqueSlug
 } from '../_shared.js';
 
 export async function onRequestPost(context) {
@@ -45,13 +46,15 @@ export async function onRequestPost(context) {
 
     for (const c of b.categories.slice(0, 200)) {
       const sourceId = cleanString(c.id, 100);
+      const categoryName = cleanString(c.name, 150);
+      const categorySlug = await makeUniqueSlug(db, 'categories', cleanString(c.slug, 160) || categoryName, { fallback: 'category' });
       let dbId;
       if (categoriesUseIntegerId) {
         const imageKeyRaw = cleanString(c.imageKey, 200);
         const imageKeyDb = imageKeyRaw ? await coerceDbValue(db, 'categories', 'image_key', imageKeyRaw) : '';
         const result = await db.prepare(`INSERT INTO categories(name,slug,image,image_key,icon,color,sort_order,created_at,updated_at)
           VALUES(?,?,?,?,?,?,?,?,?)`).bind(
-          cleanString(c.name,150), cleanString(c.slug,160), cleanString(c.image,500000), imageKeyDb,
+          categoryName, categorySlug, cleanString(c.image,500000), imageKeyDb,
           cleanString(c.icon,80) || 'fa-paw', cleanString(c.color,120) || 'from-orange-500 to-amber-500', 0, now, now
         ).run();
         dbId = Number(result?.meta?.last_row_id || 0);
@@ -66,7 +69,7 @@ export async function onRequestPost(context) {
         const imageKeyDb = imageKeyRaw ? await coerceDbValue(db, 'categories', 'image_key', imageKeyRaw) : '';
         await db.prepare(`INSERT INTO categories(id,name,slug,image,image_key,icon,color,sort_order,created_at,updated_at)
           VALUES(?,?,?,?,?,?,?,?,?,?)`).bind(
-          dbId, cleanString(c.name,150), cleanString(c.slug,160), cleanString(c.image,500000), imageKeyDb,
+          dbId, categoryName, categorySlug, cleanString(c.image,500000), imageKeyDb,
           cleanString(c.icon,80) || 'fa-paw', cleanString(c.color,120) || 'from-orange-500 to-amber-500', 0, now, now
         ).run();
       }
@@ -75,21 +78,23 @@ export async function onRequestPost(context) {
 
     for (const p of b.products.slice(0, 500)) {
       const sourceId = cleanString(p.id, 100);
+      const productName = cleanString(p.name, 180);
+      const productSlug = await makeUniqueSlug(db, 'products', cleanString(p.slug, 160) || cleanString(p?.details?.slug, 160) || productName, { fallback: 'product' });
       const sourceCategoryId = cleanString(p.categoryId, 100);
       const mappedCategory = categoryIds.get(sourceCategoryId) ?? sourceCategoryId;
       const categoryDbValue = await coerceDbValue(db, 'products', 'category_id', mappedCategory);
       const imageKeyRaw = cleanString(p.imageKey, 200);
       const imageKeyDb = imageKeyRaw ? await coerceDbValue(db, 'products', 'image_key', imageKeyRaw) : '';
       const common = [
-        cleanString(p.name,180), categoryDbValue, cleanString(p.stockStatus,30) || 'in_stock',
+        productName, productSlug, categoryDbValue, cleanString(p.stockStatus,30) || 'in_stock',
         Number(p.originalPrice) || 0, Number(p.discountPercent) || 0, Number(p.finalPrice) || 0,
         Boolean(p.isFeatured) ? 1 : 0, Boolean(p.isBestSeller) ? 1 : 0, Boolean(p.isNew) ? 1 : 0,
         cleanString(p.image,500000), imageKeyDb, cleanString(p.shortDesc,3000), cleanString(p.fullDesc,15000), now, now
       ];
       let dbId;
       if (productsUseIntegerId) {
-        const result = await db.prepare(`INSERT INTO products(name,category_id,stock_status,original_price,discount_percent,final_price,is_featured,is_best_seller,is_new,image,image_key,short_desc,full_desc,created_at,updated_at)
-          VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).bind(...common).run();
+        const result = await db.prepare(`INSERT INTO products(name,slug,category_id,stock_status,original_price,discount_percent,final_price,is_featured,is_best_seller,is_new,image,image_key,short_desc,full_desc,created_at,updated_at)
+          VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).bind(...common).run();
         dbId = Number(result?.meta?.last_row_id || 0);
       } else {
         const numericProductRequired = [detailProductKind, reviewProductKind].some(k => k === 'integer-primary-key' || k === 'integer');
@@ -101,8 +106,8 @@ export async function onRequestPost(context) {
             { table: 'review_submission_log', column: 'product_id' }, { table: 'customer_wishlist', column: 'product_id' }, { table: 'customer_cart', column: 'product_id' }
           ]);
         }
-        await db.prepare(`INSERT INTO products(id,name,category_id,stock_status,original_price,discount_percent,final_price,is_featured,is_best_seller,is_new,image,image_key,short_desc,full_desc,created_at,updated_at)
-          VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).bind(dbId, ...common).run();
+        await db.prepare(`INSERT INTO products(id,name,slug,category_id,stock_status,original_price,discount_percent,final_price,is_featured,is_best_seller,is_new,image,image_key,short_desc,full_desc,created_at,updated_at)
+          VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).bind(dbId, ...common).run();
       }
       if (sourceId) productIds.set(sourceId, dbId);
     }
@@ -125,7 +130,7 @@ export async function onRequestPost(context) {
     for (const p of b.products.slice(0, 500)) {
       const sourceId = cleanString(p.id,100);
       const dbProductId = productIds.get(sourceId) ?? sourceId;
-      await upsertProductDetails(db, dbProductId, buildProductDetails(p.details || {}));
+      await upsertProductDetails(db, dbProductId, buildProductDetails({ ...(p.details || {}), slug: (p.slug || p?.details?.slug || p.name || '') }));
     }
 
     return json({ ok: true, store: await getStore(db) });

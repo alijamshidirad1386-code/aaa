@@ -1,4 +1,4 @@
-import { bad, getStore, json, requireAdmin, requireJson, cleanString, ensureBaseStoreSchema, ensureMediaSchema, isIntegerPrimaryKey, coerceDbValue, extractDbError, makeCompatibleTextId } from '../_shared.js';
+import { bad, getStore, json, requireAdmin, requireJson, cleanString, ensureBaseStoreSchema, ensureMediaSchema, isIntegerPrimaryKey, coerceDbValue, extractDbError, makeCompatibleTextId, makeUniqueSlug } from '../_shared.js';
 
 function normalizeImageRef(value, imageKey) {
   const key = cleanString(imageKey, 200);
@@ -32,6 +32,7 @@ export async function onRequestPost(context) {
     }
     const now = new Date().toISOString();
     const image = normalizeImageRef(b?.image, imageKeyRaw);
+    const slug = await makeUniqueSlug(db, 'categories', cleanString(b?.slug, 160) || name, { fallback: 'category' });
     const isIntegerId = await isIntegerPrimaryKey(db, 'categories', 'id');
     let result;
     let createdId = '';
@@ -40,7 +41,7 @@ export async function onRequestPost(context) {
         (name,slug,image,image_key,icon,color,sort_order,created_at,updated_at)
         VALUES (?,?,?,?,?,?,?,?,?)`)
         .bind(
-          name, cleanString(b?.slug, 160) || name, image, imageKey,
+          name, slug, image, imageKey,
           cleanString(b?.icon, 80) || 'fa-paw',
           cleanString(b?.color, 120) || 'from-orange-500 to-amber-500',
           Number.isFinite(Number(b?.sortOrder)) ? Number(b.sortOrder) : 0, now, now

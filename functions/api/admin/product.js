@@ -11,7 +11,8 @@ import {
   isIntegerPrimaryKey,
   coerceDbValue,
   extractDbError,
-  makeCompatibleTextId
+  makeCompatibleTextId,
+  makeUniqueSlug
 } from '../_shared.js';
 
 export async function onRequestPost(context) {
@@ -51,10 +52,13 @@ export async function onRequestPost(context) {
       ? Math.max(0, Number(b.finalPrice))
       : Math.round(originalPrice * (1 - discountPercent / 100));
     const now = new Date().toISOString();
-    const details = buildProductDetails(b?.details || b);
+    const requestedSlug = cleanString(b?.slug, 160) || cleanString(b?.details?.slug, 160) || name;
+    const slug = await makeUniqueSlug(db, 'products', requestedSlug, { fallback: 'product' });
+    const details = buildProductDetails({ ...(b?.details || b), slug });
     const image = cleanString(b?.image, 500000) || (imageKey ? `/api/media/${encodeURIComponent(imageKey)}` : '');
     const commonValues = [
       name,
+      slug,
       categoryId,
       cleanString(b?.stockStatus, 30) || 'in_stock',
       originalPrice,
@@ -77,8 +81,8 @@ export async function onRequestPost(context) {
     if (productsUseIntegerId) {
       const result = await db.prepare(`
         INSERT INTO products
-          (name,category_id,stock_status,original_price,discount_percent,final_price,is_featured,is_best_seller,is_new,image,image_key,short_desc,full_desc,created_at,updated_at)
-        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+          (name,slug,category_id,stock_status,original_price,discount_percent,final_price,is_featured,is_best_seller,is_new,image,image_key,short_desc,full_desc,created_at,updated_at)
+        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
       `).bind(...commonValues).run();
       productId = Number(result?.meta?.last_row_id || 0);
       if (!productId) throw new Error('محصول در دیتابیس درج شد اما شناسه عددی آن قابل دریافت نیست.');
@@ -93,8 +97,8 @@ export async function onRequestPost(context) {
       ]);
       await db.prepare(`
         INSERT INTO products
-          (id,name,category_id,stock_status,original_price,discount_percent,final_price,is_featured,is_best_seller,is_new,image,image_key,short_desc,full_desc,created_at,updated_at)
-        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+          (id,name,slug,category_id,stock_status,original_price,discount_percent,final_price,is_featured,is_best_seller,is_new,image,image_key,short_desc,full_desc,created_at,updated_at)
+        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
       `).bind(productId, ...commonValues).run();
     }
 
