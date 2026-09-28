@@ -1,8 +1,9 @@
-import { bad, json, requireAdmin } from "../_shared.js";
+import { bad, json, requireAdmin, ensureMediaSchema } from "../_shared.js";
 
 const MAX_IMAGE_BYTES = 1800000; // safely below D1's 2,000,000-byte BLOB/row limit
 
 export async function onRequestPost(context) {
+  if (!context.env?.DB) return bad("اتصال Worker به Cloudflare D1 برقرار نیست. Binding با نام DB را بررسی کنید.", 500);
   if (!(await requireAdmin(context))) return bad("نیاز به ورود مدیر دارید.", 401);
   const form = await context.request.formData();
   const file = form.get("file");
@@ -17,6 +18,8 @@ export async function onRequestPost(context) {
   if (bytes.byteLength > MAX_IMAGE_BYTES) return bad("حجم تصویر برای ذخیره در دیتابیس زیاد است. تصویر کوچک‌تر انتخاب کنید.");
 
   try {
+    // Existing deployments may predate media_assets. Create the table lazily so uploads do not depend on a manual SQL repair.
+    await ensureMediaSchema(context.env.DB);
     await context.env.DB.prepare(`
       INSERT INTO media_assets (id, mime_type, size_bytes, data, created_at)
       VALUES (?, ?, ?, ?, ?)
