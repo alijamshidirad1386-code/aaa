@@ -1,4 +1,4 @@
-import { bad, json, requireAdmin, ensureMediaSchema } from "../_shared.js";
+import { bad, json, requireAdmin, ensureBaseStoreSchema, ensureMediaSchema, isIntegerPrimaryKey, getColumnKind, getNextCompatibleTextId, extractDbError } from "../_shared.js";
 
 const MAX_IMAGE_BYTES = 1800000; // keep a safety margin below D1's 2,000,000-byte BLOB/row limit
 
@@ -29,23 +29,41 @@ export async function onRequestPost(context) {
   if (declaredMime && !allowedInput.has(declaredMime)) return bad("فرمت تصویر پشتیبانی نمی‌شود. JPG، PNG، WebP یا AVIF انتخاب کنید.");
   if (file.size > MAX_IMAGE_BYTES) return bad("حجم تصویر برای ذخیره در دیتابیس زیاد است. تصویر را کوچک‌تر انتخاب کنید.");
 
-  const key = crypto.randomUUID().replaceAll("-", "");
+  const randomKey = crypto.randomUUID().replaceAll("-", "");
   const bytes = await file.arrayBuffer();
   const inputMime = detectImageMime(bytes, declaredMime || "image/webp");
   if (!inputMime || !allowedInput.has(inputMime)) return bad("محتوای فایل تصویر معتبر نیست. لطفاً یک JPG، PNG، WebP یا AVIF واقعی انتخاب کنید.");
   if (bytes.byteLength > MAX_IMAGE_BYTES) return bad("حجم تصویر برای ذخیره در دیتابیس زیاد است. تصویر کوچک‌تر انتخاب کنید.");
 
+  let key = '';
   try {
-    // Existing deployments may predate media_assets. Create the table lazily so uploads do not depend on a manual SQL repair.
+    // Make the dependent image_key columns visible before choosing an ID shape.
+    // This is important for mixed legacy schemas where media_assets.id is TEXT
+    // but category/product image_key is INTEGER.
+    await ensureBaseStoreSchema(context.env.DB);
     await ensureMediaSchema(context.env.DB);
-    await context.env.DB.prepare(`
-      INSERT INTO media_assets (id, mime_type, size_bytes, data, created_at)
-      VALUES (?, ?, ?, ?, ?)
-    `).bind(key, inputMime, bytes.byteLength, bytes, new Date().toISOString()).run();
+    const integerId = await isIntegerPrimaryKey(context.env.DB, 'media_assets', 'id');
+    if (integerId) {
+      const result = await context.env.DB.prepare(`
+        INSERT INTO media_assets (mime_type, size_bytes, data, created_at)
+        VALUES (?, ?, ?, ?)
+      `).bind(inputMime, bytes.byteLength, bytes, new Date().toISOString()).run();
+      key = String(result?.meta?.last_row_id || '');
+      if (!key) throw new Error('شناسه عددی تصویر پس از ذخیره‌سازی قابل دریافت نیست.');
+    } else {
+      const categoryImageKind = await getColumnKind(context.env.DB, 'categories', 'image_key');
+      const productImageKind = await getColumnKind(context.env.DB, 'products', 'image_key');
+      const needsNumericKey = [categoryImageKind, productImageKind].some(k => k === 'integer-primary-key' || k === 'integer');
+      key = needsNumericKey ? await getNextCompatibleTextId(context.env.DB, 'media_assets', 'id') : randomKey;
+      await context.env.DB.prepare(`
+        INSERT INTO media_assets (id, mime_type, size_bytes, data, created_at)
+        VALUES (?, ?, ?, ?, ?)
+      `).bind(key, inputMime, bytes.byteLength, bytes, new Date().toISOString()).run();
+    }
   } catch (error) {
-    console.error(error);
-    const detail = String(error?.message || error || "خطای نامشخص").slice(0, 220);
-    return bad(`ذخیره تصویر در D1 انجام نشد: ${detail}`, 500);
+    console.error('ADMIN_MEDIA_UPLOAD_ERROR', error);
+    const dbError = extractDbError(error);
+    return bad(`ذخیره تصویر در D1 انجام نشد [${dbError.code || 'DB_ERROR'}]: ${dbError.message}`, 500, { errorCode: dbError.code || 'ADMIN_MEDIA_UPLOAD_FAILED', errorDetails: { operation: 'media.upload', database: dbError.message } });
   }
 
   const url = `/api/media/${key}`;
