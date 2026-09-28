@@ -42,6 +42,7 @@ CREATE TABLE IF NOT EXISTS categories (
 CREATE TABLE IF NOT EXISTS products (
   id TEXT PRIMARY KEY,
   name TEXT NOT NULL,
+  slug TEXT NOT NULL DEFAULT '',
   category_id TEXT NOT NULL,
   stock_status TEXT NOT NULL DEFAULT 'in_stock',
   original_price REAL NOT NULL DEFAULT 0,
