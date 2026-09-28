@@ -1055,7 +1055,7 @@ function submitInstagramOrder() {
   setTimeout(() => window.open(INSTAGRAM_URL, "_blank", "noopener,noreferrer"), 600);
 }
 
-function openAdminModal() {
+async function openAdminModal() {
   let modal = document.getElementById("admin-portal-modal");
   if (!modal) {
     modal = document.createElement("div");
@@ -1064,10 +1064,17 @@ function openAdminModal() {
     document.body.appendChild(modal);
   }
 
+  if (!isAdminLoggedIn) {
+    try { await checkRemoteAdminSession(); } catch (err) { console.warn("Admin session check failed:", err); }
+  }
+  if (isAdminLoggedIn) {
+    try { await refreshRemoteStore(); } catch (err) { console.warn("Admin live catalog refresh failed:", err); }
+  }
   try {
     renderAdminPortal();
   } catch (err) {
     console.error("renderAdminPortal error:", err);
+    showToast(`خطای نمایش پنل مدیریت: ${String(err?.message || err)}`, "error");
   }
   modal.classList.remove("hidden");
 }
@@ -1363,9 +1370,11 @@ function renderAdminTabContent() {
                 <span class="text-orange-600 font-black">تصویر WebP دسته‌بندی:</span>
                 <span class="text-[10px] text-slate-400 mr-1">(آدرس اینترنتی یا فایل WebP)</span>
               </label>
-              <input type="url" id="admin-cat-img" placeholder="https://... یا انتخاب فایل با فرمت .webp"
+              <input type="text" id="admin-cat-img" inputmode="url" placeholder="https://... یا /api/media/... یا انتخاب فایل"
                 class="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs outline-none focus:border-orange-500 mb-1.5">
               
+              <input type="hidden" id="admin-cat-img-key" value="">
+
               <div class="p-2.5 bg-orange-50/60 rounded-xl border border-orange-200/80">
                 <p class="text-[10px] text-orange-800 font-semibold mb-1 flex items-center gap-1">
                   <i class="fa-solid fa-file-image"></i>
@@ -1785,7 +1794,7 @@ async function handleAdminFileToInput(fileInputId, targetInputId, previewWrapper
     const uploadName = blob.type === "image/webp" ? "foxshop-image.webp" : "foxshop-image.jpg";
     form.append("file", blob, uploadName);
     const data = await apiRequest("/admin/upload-image", { method: "POST", body: form });
-    if (targetInput) targetInput.value = data.url;
+    if (targetInput) targetInput.value = data.url || (data.key ? `/api/media/${data.key}` : "");
     if (previewWrapper) {
       previewWrapper.classList.remove("hidden");
       const img = previewWrapper.querySelector("img");
@@ -1956,7 +1965,16 @@ async function handleAdminAddCategory(e) {
   const icon = document.getElementById("admin-cat-icon")?.value || "fa-paw";
   const color = document.getElementById("admin-cat-color")?.value || "from-orange-500 to-amber-500";
   const imageKey = document.getElementById("admin-cat-img-key")?.value || "";
+  const fileInput = document.getElementById("admin-cat-file");
+  if (fileInput?.dataset.uploading === "1") {
+    showToast("لطفاً صبر کنید تا آپلود و فشرده‌سازی تصویر دسته‌بندی تمام شود.", "info");
+    return;
+  }
   if (!name) { showToast("لطفاً نام دسته‌بندی را وارد نمایید", "info"); return; }
+  if (img && !imageKey && !/^https?:\/\//i.test(img) && !/^\/[^\s]+$/.test(img)) {
+    showToast("آدرس تصویر معتبر نیست. از لینک http/https یا آپلود مستقیم استفاده کنید.", "error");
+    return;
+  }
   try {
     const data = await apiRequest("/admin/category", { method:"POST", body: JSON.stringify({ name, slug:name, image:img, imageKey, icon, color }) });
     applyRemoteStore(data.store); renderAdminPortal(); initHeader();
@@ -2002,8 +2020,24 @@ async function handleAdminAddProduct(e) {
   if (!name || !cat) { showToast("نام محصول و دسته‌بندی الزامی است.", "info"); return; }
   const finalPrice = discount > 0 ? Math.round(price * (1 - discount / 100)) : price;
   try {
+    try {
+      const liveStore = await refreshRemoteStore();
+      const selectedCategory = (liveStore.categories || []).find(c => String(c.id) === String(cat));
+      if (!selectedCategory) {
+        renderAdminPortal();
+        throw new Error("دسته‌بندی انتخاب‌شده در دیتابیس وجود ندارد. فهرست دسته‌بندی‌ها تازه‌سازی شد؛ لطفاً یکی از دسته‌بندی‌های فعلی را انتخاب کنید.");
+      }
+    } catch (refreshError) {
+      if (refreshError?.message?.includes("دسته‌بندی انتخاب‌شده")) throw refreshError;
+      console.warn("Live category refresh before product publish failed:", refreshError);
+    }
+    const currentCat = document.getElementById("admin-new-cat")?.value || cat;
+    if (!currentCat) {
+      renderAdminPortal();
+      throw new Error("هیچ دسته‌بندی معتبری برای این محصول انتخاب نشده است.");
+    }
     const data = await apiRequest("/admin/product", { method:"POST", body: JSON.stringify({
-      name, categoryId:cat, originalPrice:price, discountPercent:discount, finalPrice, stockStatus:stock, image:img, imageKey, shortDesc:desc, fullDesc:desc,
+      name, categoryId:currentCat, originalPrice:price, discountPercent:discount, finalPrice, stockStatus:stock, image:img, imageKey, shortDesc:desc, fullDesc:desc,
       isFeatured:true, isBestSeller:false, isNew:true,
       brand:document.getElementById("admin-new-brand")?.value.trim() || "",
       weight:document.getElementById("admin-new-weight")?.value.trim() || "",
@@ -2274,7 +2308,7 @@ async function handleAdminLogin(event) {
   try {
     const data = await apiRequest("/admin/login", { method:"POST", body:JSON.stringify({username:usernameInput,password:passInput}) });
     isAdminLoggedIn = true; adminUsername = data.username || usernameInput;
-    refreshRemoteStore().catch(() => {});
+    try { await refreshRemoteStore(); } catch (refreshError) { console.warn("Post-login catalog refresh failed:", refreshError); }
     showToast("ورود موفقیت‌آمیز به پنل مدیریت PetraPet 🐾", "success"); renderAdminPortal();
   } catch (err) { showToast(err.message || "نام کاربری یا رمز عبور اشتباه است.", err.status===429 ? "info" : "error"); renderAdminPortal(); }
 }
