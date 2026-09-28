@@ -143,8 +143,9 @@ async function apiRequest(path, options = {}) {
     try { data = text ? JSON.parse(text) : null; } catch { data = { ok: false, error: text || "پاسخ نامعتبر از سرور" }; }
     if (!response.ok || data?.ok === false) {
       const serverMessage = data?.error || `HTTP ${response.status}`;
+      const code = data?.code ? `[${data.code}] ` : '';
       const detail = data?.details?.database ? `\nجزئیات دیتابیس: ${data.details.database}` : '';
-      const err = new Error(`${serverMessage}${detail}`);
+      const err = new Error(`${code}${serverMessage}${detail}`);
       err.status = response.status;
       err.code = data?.code || '';
       err.details = data?.details || null;
@@ -201,12 +202,12 @@ let lastRemoteStoreAt = 0;
 
 async function refreshRemoteStore(options = {}) {
   const force = Boolean(options?.force);
-  const cacheWindow = Number(options?.cacheWindowMs || 8000);
+  const cacheWindow = Number(options?.cacheWindowMs || 10000);
   if (!force && lastRemoteStoreAt && lastRemoteStore && Date.now() - lastRemoteStoreAt < cacheWindow) {
     return { ok: true, ...lastRemoteStore };
   }
   if (remoteStoreInFlight) return remoteStoreInFlight;
-  remoteStoreInFlight = apiRequest("/store", { timeoutMs: 8000 })
+  remoteStoreInFlight = apiRequest("/store", { timeoutMs: 12000 })
     .then(data => {
       applyRemoteStore(data);
       lastRemoteStoreAt = Date.now();
