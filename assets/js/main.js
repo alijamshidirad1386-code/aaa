@@ -1731,23 +1731,37 @@ function adminFilterProducts(query) {
   listEl.innerHTML = renderAdminProductsRows(filtered);
 }
 
-function waitForImageLoad(url, timeout = 12000) {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    let done = false;
-    const finish = (fn, value) => {
-      if (done) return;
-      done = true;
-      clearTimeout(timer);
-      img.onload = null;
-      img.onerror = null;
-      fn(value);
-    };
-    const timer = setTimeout(() => finish(reject, new Error('تصویر در سرور ذخیره شد اما مرورگر نتوانست آن را لود کند.')), timeout);
-    img.onload = () => finish(resolve, true);
-    img.onerror = () => finish(reject, new Error('تصویر در سرور ذخیره شد اما فایل خروجی قابل نمایش نیست.'));
-    img.src = `${url}${url.includes('?') ? '&' : '?'}v=${Date.now()}`;
-  });
+async function waitForImageLoad(url, timeout = 12000) {
+  const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+  const timer = controller ? setTimeout(() => controller.abort(), timeout) : null;
+  let objectUrl = '';
+  try {
+    const response = await fetch(`${url}${url.includes('?') ? '&' : '?'}v=${Date.now()}`, {
+      method: 'GET',
+      credentials: 'same-origin',
+      cache: 'no-store',
+      signal: controller?.signal
+    });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const type = String(response.headers.get('content-type') || '').toLowerCase();
+    if (!type.startsWith('image/')) throw new Error(`MIME ${type || 'نامشخص'}`);
+    const blob = await response.blob();
+    if (!blob.size) throw new Error('پاسخ تصویر خالی است.');
+    objectUrl = URL.createObjectURL(blob);
+    await new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => resolve(true);
+      img.onerror = () => reject(new Error('بایت‌های ذخیره‌شده تصویر قابل نمایش نیستند.'));
+      img.src = objectUrl;
+    });
+    return true;
+  } catch (error) {
+    if (error?.name === 'AbortError') throw new Error('بارگذاری تصویر از سرور بیش از حد طول کشید.');
+    throw new Error(`تصویر در سرور ذخیره شده اما خروجی رسانه قابل نمایش نیست (${String(error?.message || error)}).`);
+  } finally {
+    if (timer) clearTimeout(timer);
+    if (objectUrl) URL.revokeObjectURL(objectUrl);
+  }
 }
 
 /**
@@ -1768,9 +1782,9 @@ async function handleAdminFileToInput(fileInputId, targetInputId, previewWrapper
   try {
     const blob = await compressImageBlob(file);
     const form = new FormData();
-    form.append("file", blob, "foxshop-image.webp");
+    const uploadName = blob.type === "image/webp" ? "foxshop-image.webp" : "foxshop-image.jpg";
+    form.append("file", blob, uploadName);
     const data = await apiRequest("/admin/upload-image", { method: "POST", body: form });
-    await waitForImageLoad(data.url);
     if (targetInput) targetInput.value = data.url;
     if (previewWrapper) {
       previewWrapper.classList.remove("hidden");
@@ -1780,8 +1794,10 @@ async function handleAdminFileToInput(fileInputId, targetInputId, previewWrapper
     const keyInputId = targetInputId === "admin-new-img" ? "admin-new-img-key" : "admin-cat-img-key";
     const keyInput = document.getElementById(keyInputId);
     if (keyInput) keyInput.value = data.key;
+    try { await waitForImageLoad(data.url); }
+    catch (previewError) { console.error(previewError); showToast("فایل در سرور ذخیره شد، اما پیش‌نمایش مرورگر خطا داشت؛ محصول هنوز می‌تواند با همین تصویر منتشر شود.", "info"); }
     fileInput.dataset.uploading = "0";
-    showToast("تصویر با موفقیت در دیتابیس آنلاین ذخیره شد 🐾", "success");
+    showToast(`تصویر فشرده شد و در D1 ذخیره شد (${data.mimeType || blob.type}، ${Math.round(blob.size / 1024)}KB) 🐾`, "success");
   } catch (err) {
     fileInput.dataset.uploading = "0";
     console.error(err); showToast(err.message || "خطا در بارگذاری تصویر", "error");
@@ -1835,7 +1851,7 @@ async function compressImageBlob(file, maxWidth = 1000, maxHeight = 1000, qualit
   ctx.imageSmoothingQuality = 'high';
   ctx.drawImage(source, 0, 0, width, height);
 
-  const canvasBlob = (mime, q) => new Promise((resolve) => canvas.toBlob(resolve, mime, q));
+  const canvasBlob = (mime, q) => new Promise((resolve) => canvas.toBlob(blob => resolve(blob && blob.type === mime ? blob : null), mime, q));
 
   // Prefer WebP; fall back to JPEG. Keep the file comfortably below D1's
   // 2,000,000-byte BLOB/row limit so the image remains reliable in D1.
@@ -1875,10 +1891,12 @@ async function handleDirectCategoryFileUpload(catId, inputEl) {
   showToast(`در حال فشرده‌سازی و ذخیره عکس «${cat.name}» در دیتابیس...`, "info");
   try {
     const blob = await compressImageBlob(inputEl.files[0]);
-    const form = new FormData(); form.append("file", blob, "category-image.webp");
+    const form = new FormData();
+    const uploadName = blob.type === "image/webp" ? "category-image.webp" : "category-image.jpg";
+    form.append("file", blob, uploadName);
     const uploaded = await apiRequest("/admin/upload-image", { method: "POST", body: form });
-    await waitForImageLoad(uploaded.url);
     const saved = await apiRequest(`/admin/category/${encodeURIComponent(catId)}`, { method: "PUT", body: JSON.stringify({ ...cat, image: uploaded.url, imageKey: uploaded.key }) });
+    try { await waitForImageLoad(uploaded.url); } catch (previewError) { console.error(previewError); }
     applyRemoteStore(saved.store); renderAdminPortal(); initHeader();
     if (typeof renderHomeCategories === "function") renderHomeCategories();
     if (typeof renderCategoryPills === "function") renderCategoryPills();
@@ -1931,7 +1949,8 @@ function adminPromptEditCategoryPhoto(catId) {
  */
 async function handleAdminAddCategory(e) {
   e.preventDefault();
-  if (!backendReady) { showToast("ارتباط با سرور برقرار نیست.", "error"); return; }
+  if (!isAdminLoggedIn) { await checkRemoteAdminSession(); }
+  if (!isAdminLoggedIn) { showToast("لطفاً ابتدا وارد پنل مدیریت شوید.", "error"); return; }
   const name = document.getElementById("admin-cat-name")?.value.trim() || "";
   const img = document.getElementById("admin-cat-img")?.value.trim() || "";
   const icon = document.getElementById("admin-cat-icon")?.value || "fa-paw";
@@ -2145,17 +2164,18 @@ async function handleAdminEditProductFile(inputEl) {
     if (status) status.textContent = 'در حال فشرده‌سازی...';
     const blob = await compressImageBlob(file);
     const form = new FormData();
-    form.append('file', blob, blob.type === 'image/jpeg' ? 'foxshop-image.jpg' : 'foxshop-image.webp');
+    const uploadName = blob.type === 'image/webp' ? 'foxshop-image.webp' : 'foxshop-image.jpg';
+    form.append('file', blob, uploadName);
     const uploaded = await apiRequest('/admin/upload-image', { method: 'POST', body: form });
-    await waitForImageLoad(uploaded.url);
     document.getElementById('edit-prod-image').value = uploaded.url;
     document.getElementById('edit-prod-image-key').value = uploaded.key;
     const preview = document.getElementById('edit-prod-preview');
     const wrap = document.getElementById('edit-prod-preview-wrap');
     if (preview) preview.src = `${uploaded.url}?v=${Date.now()}`;
     if (wrap) wrap.classList.remove('hidden');
-    if (status) status.textContent = `آماده؛ ${Math.round(blob.size / 1024)}KB`;
-    showToast('عکس فشرده شد و با موفقیت در D1 ذخیره شد 🐾', 'success');
+    try { await waitForImageLoad(uploaded.url); } catch (previewError) { console.error(previewError); if (status) status.textContent = `ذخیره شد؛ پیش‌نمایش خطا داشت • ${Math.round(blob.size / 1024)}KB`; }
+    if (status && !status.textContent) status.textContent = `آماده؛ ${Math.round(blob.size / 1024)}KB`;
+    showToast(`عکس فشرده شد و در D1 ذخیره شد (${uploaded.mimeType || blob.type}، ${Math.round(blob.size / 1024)}KB) 🐾`, 'success');
   } catch (err) {
     console.error(err);
     if (status) status.textContent = '';
@@ -2324,7 +2344,8 @@ async function adminImportBackup(e) {
 
 async function adminResetDefaults() {
   if (!confirm("آیا اطمینان دارید که می‌خواهید کاتالوگ به حالت اولیه بازگردد؟")) return;
-  if (!backendReady) { showToast("ارتباط با سرور برقرار نیست.", "error"); return; }
+  if (!isAdminLoggedIn) { await checkRemoteAdminSession(); }
+  if (!isAdminLoggedIn) { showToast("لطفاً ابتدا وارد پنل مدیریت شوید.", "error"); return; }
   try {
     const res=await apiRequest("/admin/reset",{method:"POST",body:JSON.stringify({products:typeof DEFAULT_PRODUCTS!=="undefined"?DEFAULT_PRODUCTS:[],categories:typeof DEFAULT_CATEGORIES!=="undefined"?DEFAULT_CATEGORIES:[]})});
     applyRemoteStore(res.store); renderAdminPortal(); initHeader();
