@@ -9,6 +9,7 @@ let customerSchemaReady = false;
 let reviewSchemaPromise = null;
 let customerSchemaPromise = null;
 let extendedSchemaPromise = null;
+let mediaSchemaPromise = null;
 
 export function json(data, status = 200, extra = {}) {
   return new Response(JSON.stringify(data), {
@@ -169,6 +170,26 @@ function normalizeDetails(row) {
     tags: safeJson(row.tags_json, []),
     consumable: Boolean(Number(row.consumable || 0))
   };
+}
+
+export async function ensureMediaSchema(db) {
+  if (!db) throw new Error('D1 binding is missing');
+  if (mediaSchemaPromise) return mediaSchemaPromise;
+  mediaSchemaPromise = (async () => {
+    await db.prepare(`CREATE TABLE IF NOT EXISTS media_assets (
+      id TEXT PRIMARY KEY,
+      mime_type TEXT NOT NULL,
+      size_bytes INTEGER NOT NULL,
+      data BLOB NOT NULL,
+      created_at TEXT NOT NULL
+    )`).run();
+    await db.prepare('CREATE INDEX IF NOT EXISTS idx_media_assets_created ON media_assets(created_at)').run();
+  })();
+  try {
+    await mediaSchemaPromise;
+  } finally {
+    mediaSchemaPromise = null;
+  }
 }
 
 export async function ensureExtendedSchema(db) {
