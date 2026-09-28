@@ -10,6 +10,9 @@ let reviewSchemaPromise = null;
 let customerSchemaPromise = null;
 let extendedSchemaPromise = null;
 let mediaSchemaPromise = null;
+let mediaSchemaReady = false;
+let baseStoreSchemaPromise = null;
+let baseStoreSchemaReady = false;
 
 export function json(data, status = 200, extra = {}) {
   return new Response(JSON.stringify(data), {
@@ -172,21 +175,128 @@ function normalizeDetails(row) {
   };
 }
 
+export async function ensureBaseStoreSchema(db) {
+  if (!db) throw new Error('D1 binding is missing');
+  if (baseStoreSchemaReady) return;
+  if (baseStoreSchemaPromise) return baseStoreSchemaPromise;
+  baseStoreSchemaPromise = (async () => {
+  const exec = async (sql) => {
+    try { await db.prepare(sql).run(); }
+    catch (error) {
+      const message = String(error?.message || error || '');
+      if (/already exists|duplicate column name/i.test(message)) return;
+      throw error;
+    }
+  };
+
+  await exec(`CREATE TABLE IF NOT EXISTS categories (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL DEFAULT '',
+    slug TEXT NOT NULL DEFAULT '',
+    image TEXT NOT NULL DEFAULT '',
+    image_key TEXT NOT NULL DEFAULT '',
+    icon TEXT NOT NULL DEFAULT 'fa-paw',
+    color TEXT NOT NULL DEFAULT 'from-orange-500 to-amber-500',
+    sort_order INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL DEFAULT '',
+    updated_at TEXT NOT NULL DEFAULT ''
+  )`);
+  await exec(`CREATE TABLE IF NOT EXISTS products (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL DEFAULT '',
+    category_id TEXT NOT NULL DEFAULT '',
+    stock_status TEXT NOT NULL DEFAULT 'in_stock',
+    original_price REAL NOT NULL DEFAULT 0,
+    discount_percent REAL NOT NULL DEFAULT 0,
+    final_price REAL NOT NULL DEFAULT 0,
+    is_featured INTEGER NOT NULL DEFAULT 0,
+    is_best_seller INTEGER NOT NULL DEFAULT 0,
+    is_new INTEGER NOT NULL DEFAULT 0,
+    image TEXT NOT NULL DEFAULT '',
+    image_key TEXT NOT NULL DEFAULT '',
+    short_desc TEXT NOT NULL DEFAULT '',
+    full_desc TEXT NOT NULL DEFAULT '',
+    created_at TEXT NOT NULL DEFAULT '',
+    updated_at TEXT NOT NULL DEFAULT ''
+  )`);
+  await exec(`CREATE TABLE IF NOT EXISTS settings (
+    key TEXT PRIMARY KEY,
+    value TEXT NOT NULL DEFAULT '',
+    updated_at TEXT NOT NULL DEFAULT ''
+  )`);
+
+  const columns = async (table) => {
+    const result = await db.prepare(`PRAGMA table_info("${table.replace(/[^A-Za-z0-9_]/g, '')}")`).all();
+    return new Set((result?.results || []).map(row => String(row.name || '').toLowerCase()));
+  };
+  const addMissing = async (table, required) => {
+    let cols = await columns(table);
+    for (const [name, type] of required) {
+      if (cols.has(name)) continue;
+      await exec(`ALTER TABLE ${table} ADD COLUMN ${name} ${type}`);
+      cols.add(name);
+    }
+  };
+
+  await addMissing('categories', [
+    ['name', "TEXT NOT NULL DEFAULT ''"], ['slug', "TEXT NOT NULL DEFAULT ''"], ['image', "TEXT NOT NULL DEFAULT ''"],
+    ['image_key', "TEXT NOT NULL DEFAULT ''"], ['icon', "TEXT NOT NULL DEFAULT 'fa-paw'"],
+    ['color', "TEXT NOT NULL DEFAULT 'from-orange-500 to-amber-500'"], ['sort_order', 'INTEGER NOT NULL DEFAULT 0'],
+    ['created_at', "TEXT NOT NULL DEFAULT ''"], ['updated_at', "TEXT NOT NULL DEFAULT ''"]
+  ]);
+  await addMissing('products', [
+    ['name', "TEXT NOT NULL DEFAULT ''"], ['category_id', "TEXT NOT NULL DEFAULT ''"], ['stock_status', "TEXT NOT NULL DEFAULT 'in_stock'"],
+    ['original_price', 'REAL NOT NULL DEFAULT 0'], ['discount_percent', 'REAL NOT NULL DEFAULT 0'], ['final_price', 'REAL NOT NULL DEFAULT 0'],
+    ['is_featured', 'INTEGER NOT NULL DEFAULT 0'], ['is_best_seller', 'INTEGER NOT NULL DEFAULT 0'], ['is_new', 'INTEGER NOT NULL DEFAULT 0'],
+    ['image', "TEXT NOT NULL DEFAULT ''"], ['image_key', "TEXT NOT NULL DEFAULT ''"], ['short_desc', "TEXT NOT NULL DEFAULT ''"],
+    ['full_desc', "TEXT NOT NULL DEFAULT ''"], ['created_at', "TEXT NOT NULL DEFAULT ''"], ['updated_at', "TEXT NOT NULL DEFAULT ''"]
+  ]);
+  await addMissing('settings', [
+    ['value', "TEXT NOT NULL DEFAULT ''"], ['updated_at', "TEXT NOT NULL DEFAULT ''"]
+  ]);
+
+  await db.batch([
+    db.prepare('CREATE INDEX IF NOT EXISTS idx_categories_sort ON categories(sort_order, created_at)'),
+    db.prepare('CREATE INDEX IF NOT EXISTS idx_products_category ON products(category_id)'),
+    db.prepare('CREATE INDEX IF NOT EXISTS idx_products_category_created ON products(category_id, created_at DESC)'),
+    db.prepare('CREATE INDEX IF NOT EXISTS idx_products_featured ON products(is_featured, created_at DESC)'),
+    db.prepare('CREATE INDEX IF NOT EXISTS idx_products_bestseller ON products(is_best_seller, created_at DESC)'),
+    db.prepare('CREATE INDEX IF NOT EXISTS idx_products_new ON products(is_new, created_at DESC)')
+  ]);
+  })();
+  try { await baseStoreSchemaPromise; baseStoreSchemaReady = true; }
+  finally { baseStoreSchemaPromise = null; }
+}
 export async function ensureMediaSchema(db) {
   if (!db) throw new Error('D1 binding is missing');
+  if (mediaSchemaReady) return;
   if (mediaSchemaPromise) return mediaSchemaPromise;
   mediaSchemaPromise = (async () => {
     await db.prepare(`CREATE TABLE IF NOT EXISTS media_assets (
       id TEXT PRIMARY KEY,
-      mime_type TEXT NOT NULL,
-      size_bytes INTEGER NOT NULL,
+      mime_type TEXT NOT NULL DEFAULT 'image/webp',
+      size_bytes INTEGER NOT NULL DEFAULT 0,
       data BLOB NOT NULL,
-      created_at TEXT NOT NULL
+      created_at TEXT NOT NULL DEFAULT ''
     )`).run();
+    const result = await db.prepare('PRAGMA table_info("media_assets")').all();
+    const cols = new Set((result?.results || []).map(row => String(row.name || '').toLowerCase()));
+    const migrations = [
+      ['mime_type', "TEXT NOT NULL DEFAULT 'image/webp'"],
+      ['size_bytes', 'INTEGER NOT NULL DEFAULT 0'],
+      ['data', 'BLOB'],
+      ['created_at', "TEXT NOT NULL DEFAULT ''"]
+    ];
+    for (const [name, type] of migrations) {
+      if (!cols.has(name)) {
+        await db.prepare(`ALTER TABLE media_assets ADD COLUMN ${name} ${type}`).run();
+      }
+    }
     await db.prepare('CREATE INDEX IF NOT EXISTS idx_media_assets_created ON media_assets(created_at)').run();
   })();
   try {
     await mediaSchemaPromise;
+    mediaSchemaReady = true;
   } finally {
     mediaSchemaPromise = null;
   }
@@ -197,6 +307,8 @@ export async function ensureExtendedSchema(db) {
   if (extendedSchemaReady) return;
   if (extendedSchemaPromise) return extendedSchemaPromise;
   extendedSchemaPromise = (async () => {
+
+  await ensureBaseStoreSchema(db);
 
   // D1 can survive several deployments. Migrate legacy tables one statement at a time
   // so one incompatible old column never turns the admin review API into a generic 500.
@@ -339,6 +451,7 @@ export async function ensureReviewSchema(db) {
 }
 
 export async function getStore(db) {
+  await ensureBaseStoreSchema(db);
   await ensureExtendedSchema(db);
   const [cats, prods, details, reviews, stories, rows] = await db.batch([
     db.prepare('SELECT id,name,slug,image,image_key AS imageKey,icon,color,sort_order AS sortOrder FROM categories ORDER BY sort_order ASC, created_at ASC'),
