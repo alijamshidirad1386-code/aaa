@@ -1,4 +1,4 @@
-import { bad, getStore, json, requireAdmin, requireJson, cleanString, ensureBaseStoreSchema, ensureMediaSchema } from '../../_shared.js';
+import { bad, getStore, json, requireAdmin, requireJson, cleanString, ensureBaseStoreSchema, ensureMediaSchema, coerceDbValue, extractDbError } from '../../_shared.js';
 
 function normalizeImageRef(value, imageKey) {
   const key = cleanString(imageKey, 200);
@@ -15,16 +15,19 @@ export async function onRequestDelete(context) {
     const db = context.env?.DB;
     if (!db) return bad('اتصال Worker به Cloudflare D1 برقرار نیست.', 500);
     await ensureBaseStoreSchema(db);
-    const id = cleanString(context.params?.id, 100);
-    if (!id) return bad('شناسه دسته‌بندی نامعتبر است.');
-    const used = await db.prepare('SELECT COUNT(*) AS c FROM products WHERE category_id = ?').bind(id).first();
+    const idRaw = cleanString(context.params?.id, 100);
+    if (!idRaw) return bad('شناسه دسته‌بندی نامعتبر است.');
+    const id = await coerceDbValue(db, 'categories', 'id', idRaw);
+    const categoryColumn = await coerceDbValue(db, 'products', 'category_id', idRaw);
+    const used = await db.prepare('SELECT COUNT(*) AS c FROM products WHERE category_id = ?').bind(categoryColumn).first();
     if (Number(used?.c || 0) > 0) return bad('این دسته‌بندی هنوز محصول دارد و قابل حذف نیست.', 409);
     const result = await db.prepare('DELETE FROM categories WHERE id = ?').bind(id).run();
     if (!Number(result?.meta?.changes ?? 0)) return bad('دسته‌بندی موردنظر در دیتابیس پیدا نشد.', 404);
     return json({ ok:true, store: await getStore(db) });
   } catch (error) {
     console.error('ADMIN_CATEGORY_DELETE_ERROR', error);
-    return bad(`حذف دسته‌بندی انجام نشد: ${String(error?.message || error || 'خطای نامشخص').slice(0, 300)}`, 500, { errorCode: 'ADMIN_CATEGORY_DELETE_FAILED' });
+    const dbError = extractDbError(error);
+    return bad(`حذف دسته‌بندی انجام نشد [${dbError.code || 'DB_ERROR'}]: ${dbError.message}`, 500, { errorCode: dbError.code || 'ADMIN_CATEGORY_DELETE_FAILED', errorDetails: { operation: 'category.delete', database: dbError.message } });
   }
 }
 
@@ -35,15 +38,18 @@ export async function onRequestPut(context) {
     if (!db) return bad('اتصال Worker به Cloudflare D1 برقرار نیست.', 500);
     await ensureBaseStoreSchema(db);
     const b = await requireJson(context.request);
-    const id = cleanString(context.params?.id, 100);
-    if (!id) return bad('شناسه دسته‌بندی نامعتبر است.');
+    const idRaw = cleanString(context.params?.id, 100);
+    if (!idRaw) return bad('شناسه دسته‌بندی نامعتبر است.');
+    const id = await coerceDbValue(db, 'categories', 'id', idRaw);
     const existing = await db.prepare('SELECT id FROM categories WHERE id = ? LIMIT 1').bind(id).first();
     if (!existing) return bad('دسته‌بندی موردنظر در دیتابیس پیدا نشد. صفحه را تازه‌سازی کنید.', 404);
 
     const imageKey = cleanString(b?.imageKey, 200);
+    const dbImageKey = imageKey ? await coerceDbValue(db, 'categories', 'image_key', imageKey) : '';
+    const mediaKey = imageKey ? await coerceDbValue(db, 'media_assets', 'id', imageKey) : null;
     if (imageKey) {
       await ensureMediaSchema(db);
-      const media = await db.prepare('SELECT id FROM media_assets WHERE id = ? LIMIT 1').bind(imageKey).first();
+      const media = await db.prepare('SELECT id FROM media_assets WHERE id = ? LIMIT 1').bind(mediaKey).first();
       if (!media) return bad('تصویر انتخاب‌شده در سرور پیدا نشد. ابتدا تصویر را دوباره آپلود کنید.', 409);
     }
     const name = cleanString(b?.name,150);
@@ -54,7 +60,7 @@ export async function onRequestPut(context) {
         name,
         cleanString(b?.slug,160) || name,
         image,
-        imageKey,
+        dbImageKey,
         cleanString(b?.icon,80)||'fa-paw',
         cleanString(b?.color,120)||'from-orange-500 to-amber-500',
         new Date().toISOString(),
@@ -63,6 +69,7 @@ export async function onRequestPut(context) {
     return json({ ok:true, store: await getStore(db) });
   } catch (error) {
     console.error('ADMIN_CATEGORY_UPDATE_ERROR', error);
-    return bad(`به‌روزرسانی دسته‌بندی انجام نشد: ${String(error?.message || error || 'خطای نامشخص').slice(0, 300)}`, 500, { errorCode: 'ADMIN_CATEGORY_UPDATE_FAILED' });
+    const dbError = extractDbError(error);
+    return bad(`به‌روزرسانی دسته‌بندی انجام نشد [${dbError.code || 'DB_ERROR'}]: ${dbError.message}`, 500, { errorCode: dbError.code || 'ADMIN_CATEGORY_UPDATE_FAILED', errorDetails: { operation: 'category.update', database: dbError.message } });
   }
 }
