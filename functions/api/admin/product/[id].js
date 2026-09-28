@@ -7,7 +7,7 @@ import {
   requireJson,
   cleanString,
   upsertProductDetails,
-  ensureExtendedSchema,
+  ensureProductWriteSchema,
   ensureMediaSchema,
   coerceDbValue,
   extractDbError
@@ -18,7 +18,7 @@ export async function onRequestPut(context) {
     if (!(await requireAdmin(context))) return bad('نیاز به ورود مدیر دارید.', 401);
     const db = context.env.DB;
     if (!db) return bad('اتصال Worker به Cloudflare D1 برقرار نیست.', 500);
-    await ensureExtendedSchema(db);
+    await ensureProductWriteSchema(db);
 
     const idRaw = cleanString(context.params.id, 100);
     if (!idRaw) return bad('شناسه محصول نامعتبر است.');
@@ -91,7 +91,7 @@ export async function onRequestDelete(context) {
     if (!db) return bad('اتصال Worker به Cloudflare D1 برقرار نیست.', 500);
     const idRaw = cleanString(context.params.id, 100);
     if (!idRaw) return bad('شناسه محصول نامعتبر است.');
-    await ensureExtendedSchema(db);
+    await ensureProductWriteSchema(db);
     const id = await coerceDbValue(db, 'products', 'id', idRaw);
     const result = await db.prepare('DELETE FROM products WHERE id = ?').bind(id).run();
     if (!Number(result?.meta?.changes ?? 0)) return bad('محصول موردنظر پیدا نشد.', 404);
