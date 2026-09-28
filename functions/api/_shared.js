@@ -135,6 +135,70 @@ export function cleanString(value, max = 100000) {
   return typeof value === 'string' ? value.trim().slice(0, max) : '';
 }
 
+/**
+ * Convert a human-facing name/slug into a stable URL-safe slug.
+ * Persian/Arabic letters are transliterated so slugs remain readable and
+ * portable across browsers, SEO tools and older databases.
+ */
+export function slugify(value, fallback = 'item') {
+  const transliteration = {
+    'آ':'a','ا':'a','أ':'a','إ':'e','ء':'',
+    'ب':'b','پ':'p','ت':'t','ث':'s','ج':'j','چ':'ch','ح':'h','خ':'kh',
+    'د':'d','ذ':'z','ر':'r','ز':'z','ژ':'zh','س':'s','ش':'sh','ص':'s','ض':'z',
+    'ط':'t','ظ':'z','ع':'a','غ':'gh','ف':'f','ق':'q','ک':'k','ك':'k','گ':'g',
+    'ل':'l','م':'m','ن':'n','و':'v','ؤ':'v','ه':'h','ۀ':'h','ة':'h','ی':'y','ي':'y',
+    'ئ':'y','ى':'y'
+  };
+
+  let text = String(value ?? '')
+    .normalize('NFKC')
+    .replace(/[\u064B-\u065F\u0670\u06D6-\u06ED]/g, '')
+    .split('')
+    .map(ch => transliteration[ch] ?? ch)
+    .join('')
+    .normalize('NFKD')
+    .toLowerCase();
+
+  text = text
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .replace(/-+/g, '-')
+    .slice(0, 160)
+    .replace(/-+$/g, '');
+
+  return text || String(fallback || 'item').toLowerCase().replace(/[^a-z0-9]+/g, '-') || 'item';
+}
+
+/**
+ * Build a slug that is unique in the live D1 table.
+ * The check is case-insensitive and can exclude the current row during updates.
+ */
+export async function makeUniqueSlug(db, table, source, { excludeId = null, fallback = 'item' } = {}) {
+  if (!db) throw new Error('D1 binding is missing');
+  const safeTable = String(table || '').replace(/[^A-Za-z0-9_]/g, '');
+  if (!safeTable || !['categories', 'products'].includes(safeTable)) {
+    throw new Error('Invalid slug table');
+  }
+
+  const base = slugify(source, fallback);
+  const result = await db.prepare(`SELECT id, slug FROM "${safeTable}"`).all();
+  const used = new Set();
+
+  for (const row of result?.results || []) {
+    if (excludeId !== null && excludeId !== undefined && String(row?.id ?? '') === String(excludeId)) continue;
+    const value = String(row?.slug ?? '').trim().toLowerCase();
+    if (value) used.add(value);
+  }
+
+  let candidate = base;
+  let suffix = 2;
+  while (used.has(candidate.toLowerCase())) {
+    const suffixText = `-${suffix++}`;
+    candidate = `${base.slice(0, Math.max(1, 160 - suffixText.length))}${suffixText}`;
+  }
+  return candidate;
+}
+
 
 // Legacy D1 compatibility helpers. Older PetraPet databases may have used
 // INTEGER PRIMARY KEY columns for categories/products/media while newer
@@ -304,6 +368,7 @@ export async function ensureBaseStoreSchema(db) {
   await exec(`CREATE TABLE IF NOT EXISTS products (
     id TEXT PRIMARY KEY,
     name TEXT NOT NULL DEFAULT '',
+    slug TEXT NOT NULL DEFAULT '',
     category_id TEXT NOT NULL DEFAULT '',
     stock_status TEXT NOT NULL DEFAULT 'in_stock',
     original_price REAL NOT NULL DEFAULT 0,
@@ -345,7 +410,7 @@ export async function ensureBaseStoreSchema(db) {
     ['created_at', "TEXT NOT NULL DEFAULT ''"], ['updated_at', "TEXT NOT NULL DEFAULT ''"]
   ]);
   await addMissing('products', [
-    ['name', "TEXT NOT NULL DEFAULT ''"], ['category_id', "TEXT NOT NULL DEFAULT ''"], ['stock_status', "TEXT NOT NULL DEFAULT 'in_stock'"],
+    ['name', "TEXT NOT NULL DEFAULT ''"], ['slug', "TEXT NOT NULL DEFAULT ''"], ['category_id', "TEXT NOT NULL DEFAULT ''"], ['stock_status', "TEXT NOT NULL DEFAULT 'in_stock'"],
     ['original_price', 'REAL NOT NULL DEFAULT 0'], ['discount_percent', 'REAL NOT NULL DEFAULT 0'], ['final_price', 'REAL NOT NULL DEFAULT 0'],
     ['is_featured', 'INTEGER NOT NULL DEFAULT 0'], ['is_best_seller', 'INTEGER NOT NULL DEFAULT 0'], ['is_new', 'INTEGER NOT NULL DEFAULT 0'],
     ['image', "TEXT NOT NULL DEFAULT ''"], ['image_key', "TEXT NOT NULL DEFAULT ''"], ['short_desc', "TEXT NOT NULL DEFAULT ''"],
@@ -354,6 +419,20 @@ export async function ensureBaseStoreSchema(db) {
   await addMissing('settings', [
     ['value', "TEXT NOT NULL DEFAULT ''"], ['updated_at', "TEXT NOT NULL DEFAULT ''"]
   ]);
+
+  // Backfill legacy/blank slugs once after schema reconciliation. This also
+  // repairs databases where products.slug was added by an older migration
+  // without populating it for existing rows.
+  for (const [table, fallback] of [['categories', 'category'], ['products', 'product']]) {
+    const rows = await db.prepare(`SELECT id, name, slug FROM "${table}"`).all();
+    for (const row of rows?.results || []) {
+      if (String(row?.slug ?? '').trim()) continue;
+      const id = row?.id;
+      if (id === null || id === undefined || id === '') continue;
+      const slug = await makeUniqueSlug(db, table, row?.name, { excludeId: id, fallback });
+      await db.prepare(`UPDATE "${table}" SET slug=? WHERE id=?`).bind(slug, id).run();
+    }
+  }
 
   await db.batch([
     db.prepare('CREATE INDEX IF NOT EXISTS idx_categories_sort ON categories(sort_order, created_at)'),
