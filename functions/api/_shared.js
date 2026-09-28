@@ -26,7 +26,11 @@ export function json(data, status = 200, extra = {}) {
 }
 
 export function bad(message, status = 400, extra = {}) {
-  return json({ ok: false, error: message }, status, extra);
+  const { errorCode, errorDetails, ...headers } = extra || {};
+  const body = { ok: false, error: message };
+  if (errorCode) body.code = String(errorCode);
+  if (errorDetails !== undefined) body.details = errorDetails;
+  return json(body, status, headers);
 }
 
 function bytesToHex(bytes) {
