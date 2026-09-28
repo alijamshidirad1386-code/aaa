@@ -27,7 +27,7 @@ import { onRequestGet as accountGet, onRequestPut as accountProfileUpdate } from
 import { onRequestPut as accountFavorite } from './functions/api/account/favorites.js';
 import { onRequestPut as accountCart } from './functions/api/account/cart.js';
 import { onRequestPost as accountOrderRequest } from './functions/api/account/orders.js';
-import { bad } from './functions/api/_shared.js';
+import { bad, requireAdmin } from './functions/api/_shared.js';
 
 function contextFor(request, env, executionCtx, params = {}) {
   return { request, env, params, waitUntil: executionCtx?.waitUntil?.bind(executionCtx), next: executionCtx?.passThroughOnException?.bind(executionCtx) };
@@ -206,6 +206,15 @@ export default {
         }
         if (/EMAIL_PROVIDER_NOT_CONFIGURED/i.test(message)) {
           return addSecurityHeaders(bad('ارسال ایمیل هنوز در تنظیمات Worker فعال نشده است.', 503));
+        }
+        if (url.pathname.startsWith('/api/admin/')) {
+          try {
+            const admin = contextFor(request, env, executionCtx, {}).env?.DB ? await requireAdmin(contextFor(request, env, executionCtx, {})) : null;
+            if (admin) {
+              const detail = String(error?.message || error || 'خطای نامشخص').replace(/\s+/g, ' ').slice(0, 320);
+              return addSecurityHeaders(bad(`خطای داخلی API مدیریت: ${detail}`, 500, { errorCode: 'ADMIN_INTERNAL_ERROR' }));
+            }
+          } catch (_) {}
         }
         return addSecurityHeaders(bad('خطای داخلی سرور. لطفاً دوباره تلاش کنید.', 500));
       }
