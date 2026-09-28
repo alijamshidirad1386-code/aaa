@@ -1,4 +1,4 @@
-import { bad, getStore, json, requireAdmin, requireJson, cleanString, ensureBaseStoreSchema, ensureMediaSchema, coerceDbValue, extractDbError } from '../../_shared.js';
+import { bad, getStore, json, requireAdmin, requireJson, cleanString, ensureBaseStoreSchema, ensureMediaSchema, coerceDbValue, extractDbError, makeUniqueSlug } from '../../_shared.js';
 
 function normalizeImageRef(value, imageKey) {
   const key = cleanString(imageKey, 200);
@@ -55,10 +55,11 @@ export async function onRequestPut(context) {
     const name = cleanString(b?.name,150);
     if (!name) return bad('نام دسته‌بندی الزامی است.');
     const image = normalizeImageRef(b?.image, imageKey);
+    const slug = await makeUniqueSlug(db, 'categories', cleanString(b?.slug, 160) || name, { excludeId: id, fallback: 'category' });
     await db.prepare(`UPDATE categories SET name=?, slug=?, image=?, image_key=?, icon=?, color=?, updated_at=? WHERE id=?`)
       .bind(
         name,
-        cleanString(b?.slug,160) || name,
+        slug,
         image,
         dbImageKey,
         cleanString(b?.icon,80)||'fa-paw',
