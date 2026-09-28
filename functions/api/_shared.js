@@ -367,6 +367,206 @@ export async function ensureBaseStoreSchema(db) {
   try { await baseStoreSchemaPromise; baseStoreSchemaReady = true; }
   finally { baseStoreSchemaPromise = null; }
 }
+
+/**
+ * Lightweight write-path schema guard for product administration.
+ *
+ * The public /api/store read path must NEVER run the full migration/backfill
+ * routine. Product create/update only needs the base catalog tables plus the
+ * product_details columns. Keeping this path isolated prevents cold-start D1
+ * migrations from blocking the admin UI and public storefront.
+ */
+export async function ensureProductWriteSchema(db) {
+  if (!db) throw new Error('D1 binding is missing');
+  await ensureBaseStoreSchema(db);
+  const exec = async (sql) => {
+    try { await db.prepare(sql).run(); }
+    catch (error) {
+      const message = String(error?.message || error || '');
+      if (/already exists|duplicate column name/i.test(message)) return;
+      throw error;
+    }
+  };
+  await exec(`CREATE TABLE IF NOT EXISTS product_details (
+    product_id TEXT PRIMARY KEY, slug TEXT NOT NULL DEFAULT '', brand TEXT NOT NULL DEFAULT '', weight TEXT NOT NULL DEFAULT '',
+    volume TEXT NOT NULL DEFAULT '', flavor TEXT NOT NULL DEFAULT '', suitable_age TEXT NOT NULL DEFAULT '', goals TEXT NOT NULL DEFAULT '',
+    ingredients TEXT NOT NULL DEFAULT '', nutrition_analysis TEXT NOT NULL DEFAULT '', country TEXT NOT NULL DEFAULT '', barcode TEXT NOT NULL DEFAULT '',
+    expiry_date TEXT NOT NULL DEFAULT '', usage_method TEXT NOT NULL DEFAULT '', warranty TEXT NOT NULL DEFAULT '', storage TEXT NOT NULL DEFAULT '',
+    authenticity TEXT NOT NULL DEFAULT '', actual_stock INTEGER, min_stock INTEGER, restock_time TEXT NOT NULL DEFAULT '',
+    rating REAL NOT NULL DEFAULT 0, review_count INTEGER NOT NULL DEFAULT 0, sales_count INTEGER NOT NULL DEFAULT 0,
+    more_images_json TEXT NOT NULL DEFAULT '[]', faq_json TEXT NOT NULL DEFAULT '[]', related_ids_json TEXT NOT NULL DEFAULT '[]',
+    tags_json TEXT NOT NULL DEFAULT '[]', consumable INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL DEFAULT '', updated_at TEXT NOT NULL DEFAULT ''
+  )`);
+  const columns = [
+    ['slug', "TEXT NOT NULL DEFAULT ''"], ['brand', "TEXT NOT NULL DEFAULT ''"], ['weight', "TEXT NOT NULL DEFAULT ''"],
+    ['volume', "TEXT NOT NULL DEFAULT ''"], ['flavor', "TEXT NOT NULL DEFAULT ''"], ['suitable_age', "TEXT NOT NULL DEFAULT ''"],
+    ['goals', "TEXT NOT NULL DEFAULT ''"], ['ingredients', "TEXT NOT NULL DEFAULT ''"], ['nutrition_analysis', "TEXT NOT NULL DEFAULT ''"],
+    ['country', "TEXT NOT NULL DEFAULT ''"], ['barcode', "TEXT NOT NULL DEFAULT ''"], ['expiry_date', "TEXT NOT NULL DEFAULT ''"],
+    ['usage_method', "TEXT NOT NULL DEFAULT ''"], ['warranty', "TEXT NOT NULL DEFAULT ''"], ['storage', "TEXT NOT NULL DEFAULT ''"],
+    ['authenticity', "TEXT NOT NULL DEFAULT ''"], ['actual_stock', 'INTEGER'], ['min_stock', 'INTEGER'], ['restock_time', "TEXT NOT NULL DEFAULT ''"],
+    ['rating', 'REAL NOT NULL DEFAULT 0'], ['review_count', 'INTEGER NOT NULL DEFAULT 0'], ['sales_count', 'INTEGER NOT NULL DEFAULT 0'],
+    ['more_images_json', "TEXT NOT NULL DEFAULT '[]'"], ['faq_json', "TEXT NOT NULL DEFAULT '[]'"], ['related_ids_json', "TEXT NOT NULL DEFAULT '[]'"],
+    ['tags_json', "TEXT NOT NULL DEFAULT '[]'"], ['consumable', 'INTEGER NOT NULL DEFAULT 0'], ['created_at', "TEXT NOT NULL DEFAULT ''"], ['updated_at', "TEXT NOT NULL DEFAULT ''"]
+  ];
+  const info = await db.prepare('PRAGMA table_info("product_details")').all();
+  const existing = new Set((info?.results || []).map(row => String(row.name || '').toLowerCase()));
+  for (const [name, type] of columns) {
+    if (!existing.has(name)) await exec(`ALTER TABLE product_details ADD COLUMN ${name} ${type}`);
+  }
+}
+
+/**
+ * Read-only store snapshot. It intentionally performs ZERO schema mutations,
+ * ALTERs, backfills, PRAGMA optimize calls, or index creation. This is the hot
+ * path used by /api/store and by admin mutation responses.
+ */
+export async function getStoreReadOnly(db) {
+  if (!db) throw new Error('D1 binding is missing');
+
+  const tableResult = await db.prepare(`
+    SELECT name FROM sqlite_master
+    WHERE type='table' AND name IN ('categories','products','product_details','product_reviews','customer_stories','settings')
+  `).all();
+  const tables = new Set((tableResult?.results || []).map(r => String(r.name || '').toLowerCase()));
+
+  // Read the live column layout without changing it. This makes the public
+  // read path safe against older D1 schemas where one or two optional columns
+  // have not been added yet.
+  const schemaTables = Array.from(tables);
+  const schemaResults = schemaTables.length
+    ? await db.batch(schemaTables.map(name => db.prepare(`PRAGMA table_info("${name}")`)))
+    : [];
+  const columns = {};
+  schemaTables.forEach((name, i) => {
+    columns[name] = new Set((schemaResults[i]?.results || []).map(row => String(row.name || '').toLowerCase()));
+  });
+
+  const ident = name => `"${String(name).replace(/[^A-Za-z0-9_]/g, '')}"`;
+  const has = (table, name) => Boolean(columns[table]?.has(String(name).toLowerCase()));
+  const col = (table, name, fallback, alias = name) => has(table, name) ? `${ident(name)} AS ${ident(alias)}` : `${fallback} AS ${ident(alias)}`;
+  const order = (table, primary, secondary) => {
+    const a = has(table, primary) ? ident(primary) : (has(table, secondary) ? ident(secondary) : ident('rowid'));
+    const b = has(table, secondary) ? `, ${ident(secondary)}` : '';
+    return ` ORDER BY ${a} ASC${b}`;
+  };
+
+  const statements = [];
+  const keys = [];
+
+  if (tables.has('categories') && has('categories', 'id')) {
+    const select = [
+      col('categories','id','rowid','id'),
+      col('categories','name',"''",'name'),
+      col('categories','slug', has('categories','name') ? ident('name') : "''", 'slug'),
+      col('categories','image',"''",'image'),
+      col('categories','image_key',"''",'imageKey'),
+      col('categories','icon',"'fa-paw'",'icon'),
+      col('categories','color',"'from-orange-500 to-amber-500'",'color'),
+      col('categories','sort_order','0','sortOrder')
+    ];
+    statements.push(db.prepare(`SELECT ${select.join(',')} FROM categories${order('categories','sort_order','created_at')}`));
+    keys.push('categories');
+  }
+
+  if (tables.has('products') && has('products', 'id')) {
+    const select = [
+      col('products','id','rowid','id'),
+      col('products','name',"''",'name'),
+      col('products','category_id',"''",'categoryId'),
+      col('products','stock_status',"'in_stock'",'stockStatus'),
+      col('products','original_price','0','originalPrice'),
+      col('products','discount_percent','0','discountPercent'),
+      col('products','final_price','0','finalPrice'),
+      col('products','is_featured','0','isFeatured'),
+      col('products','is_best_seller','0','isBestSeller'),
+      col('products','is_new','0','isNew'),
+      col('products','image',"''",'image'),
+      col('products','image_key',"''",'imageKey'),
+      col('products','short_desc',"''",'shortDesc'),
+      col('products','full_desc',"''",'fullDesc')
+    ];
+    statements.push(db.prepare(`SELECT ${select.join(',')} FROM products ORDER BY ${has('products','created_at') ? ident('created_at') : ident('id')} DESC`));
+    keys.push('products');
+  }
+
+  if (tables.has('product_details') && has('product_details','product_id')) {
+    const names = ['product_id','slug','brand','weight','volume','flavor','suitable_age','goals','ingredients','nutrition_analysis','country','barcode','expiry_date','usage_method','warranty','storage','authenticity','actual_stock','min_stock','restock_time','rating','review_count','sales_count','more_images_json','faq_json','related_ids_json','tags_json','consumable','created_at','updated_at'];
+    const defaults = { product_id:"''",slug:"''",brand:"''",weight:"''",volume:"''",flavor:"''",suitable_age:"''",goals:"''",ingredients:"''",nutrition_analysis:"''",country:"''",barcode:"''",expiry_date:"''",usage_method:"''",warranty:"''",storage:"''",authenticity:"''",actual_stock:'NULL',min_stock:'NULL',restock_time:"''",rating:'0',review_count:'0',sales_count:'0',more_images_json:"'[]'",faq_json:"'[]'",related_ids_json:"'[]'",tags_json:"'[]'",consumable:'0',created_at:"''",updated_at:"''" };
+    const select = names.map(name => col('product_details', name, defaults[name], name));
+    statements.push(db.prepare(`SELECT ${select.join(',')} FROM product_details`));
+    keys.push('details');
+  }
+
+  if (tables.has('product_reviews') && has('product_reviews','product_id')) {
+    const select = [
+      col('product_reviews','id','rowid','id'),
+      col('product_reviews','product_id',"''",'productId'),
+      col('product_reviews','customer_name',"''",'customerName'),
+      col('product_reviews','rating','5','rating'),
+      col('product_reviews','review_text',"''",'reviewText'),
+      col('product_reviews','photo_url',"''",'photoUrl'),
+      col('product_reviews','created_at',"''",'createdAt')
+    ];
+    const approvedClause = has('product_reviews','approved') ? ` WHERE ${ident('approved')}=1` : '';
+    const created = has('product_reviews','created_at') ? ` ORDER BY ${ident('created_at')} DESC` : '';
+    statements.push(db.prepare(`SELECT ${select.join(',')} FROM product_reviews${approvedClause}${created}`));
+    keys.push('reviews');
+  }
+
+  if (tables.has('customer_stories') && has('customer_stories','id')) {
+    const select = [
+      col('customer_stories','id','rowid','id'),
+      col('customer_stories','customer_name',"''",'customerName'),
+      col('customer_stories','cat_name',"''",'catName'),
+      col('customer_stories','photo_url',"''",'photoUrl'),
+      col('customer_stories','quote',"''",'quote'),
+      col('customer_stories','created_at',"''",'createdAt')
+    ];
+    const approvedClause = has('customer_stories','approved') ? ` WHERE ${ident('approved')}=1` : '';
+    const created = has('customer_stories','created_at') ? ` ORDER BY ${ident('created_at')} DESC` : '';
+    statements.push(db.prepare(`SELECT ${select.join(',')} FROM customer_stories${approvedClause}${created}`));
+    keys.push('stories');
+  }
+
+  if (tables.has('settings') && has('settings','key')) {
+    statements.push(db.prepare(`SELECT ${col('settings','key',"''",'key')}, ${col('settings','value',"''",'value')} FROM settings`));
+    keys.push('settings');
+  }
+
+  const results = statements.length ? await db.batch(statements) : [];
+  const buckets = {};
+  keys.forEach((k, i) => { buckets[k] = results[i]?.results || []; });
+
+  const detailsByProduct = {};
+  for (const row of buckets.details || []) detailsByProduct[String(row.product_id)] = normalizeDetails(row);
+  const reviewsByProduct = {};
+  for (const row of buckets.reviews || []) (reviewsByProduct[String(row.productId)] ||= []).push(row);
+
+  const settings = {};
+  for (const r of buckets.settings || []) {
+    const parsed = safeJson(r.value, null);
+    settings[r.key] = parsed === null ? r.value : parsed;
+  }
+
+  const products = (buckets.products || []).map(p => ({
+    ...p,
+    id: String(p.id ?? ''),
+    categoryId: String(p.categoryId ?? ''),
+    isFeatured: Boolean(p.isFeatured),
+    isBestSeller: Boolean(p.isBestSeller),
+    isNew: Boolean(p.isNew),
+    details: detailsByProduct[String(p.id)] || normalizeDetails(null),
+    reviews: reviewsByProduct[String(p.id)] || []
+  }));
+
+  return {
+    categories: (buckets.categories || []).map(c => ({ ...c, id: String(c.id ?? '') })),
+    products,
+    settings,
+    customerStories: buckets.stories || []
+  };
+}
+
 export async function ensureMediaSchema(db) {
   if (!db) throw new Error('D1 binding is missing');
   if (mediaSchemaReady) return;
@@ -573,44 +773,9 @@ export async function ensureReviewSchema(db) {
 }
 
 export async function getStore(db) {
-  await ensureBaseStoreSchema(db);
-  await ensureExtendedSchema(db);
-  const [cats, prods, details, reviews, stories, rows] = await db.batch([
-    db.prepare('SELECT id,name,slug,image,image_key AS imageKey,icon,color,sort_order AS sortOrder FROM categories ORDER BY sort_order ASC, created_at ASC'),
-    db.prepare('SELECT id,name,category_id AS categoryId,stock_status AS stockStatus,original_price AS originalPrice,discount_percent AS discountPercent,final_price AS finalPrice,is_featured AS isFeatured,is_best_seller AS isBestSeller,is_new AS isNew,image,image_key AS imageKey,short_desc AS shortDesc,full_desc AS fullDesc FROM products ORDER BY created_at DESC'),
-    db.prepare('SELECT product_id,slug,brand,weight,volume,flavor,suitable_age,goals,ingredients,nutrition_analysis,country,barcode,expiry_date,usage_method,warranty,storage,authenticity,actual_stock,min_stock,restock_time,rating,review_count,sales_count,more_images_json,faq_json,related_ids_json,tags_json,consumable,created_at,updated_at FROM product_details'),
-    db.prepare('SELECT id,product_id AS productId,customer_name AS customerName,rating,review_text AS reviewText,photo_url AS photoUrl,created_at AS createdAt FROM product_reviews WHERE approved=1 ORDER BY created_at DESC'),
-    db.prepare('SELECT id,customer_name AS customerName,cat_name AS catName,photo_url AS photoUrl,quote,created_at AS createdAt FROM customer_stories WHERE approved=1 ORDER BY created_at DESC'),
-    db.prepare('SELECT key,value FROM settings')
-  ]);
-
-  const detailsByProduct = {};
-  for (const row of details?.results || []) detailsByProduct[row.product_id] = normalizeDetails(row);
-  const reviewsByProduct = {};
-  for (const row of reviews?.results || []) (reviewsByProduct[row.productId] ||= []).push(row);
-
-  const settings = {};
-  for (const r of rows?.results || []) {
-    const parsed = safeJson(r.value, null);
-    settings[r.key] = parsed === null ? r.value : parsed;
-  }
-
-  const products = (prods?.results || []).map(p => ({
-    ...p,
-    isFeatured: Boolean(p.isFeatured),
-    isBestSeller: Boolean(p.isBestSeller),
-    isNew: Boolean(p.isNew),
-    details: detailsByProduct[p.id] || normalizeDetails(null),
-    reviews: reviewsByProduct[p.id] || []
-  }));
-
-  return {
-    categories: cats?.results || [],
-    products,
-    settings,
-    customerStories: stories?.results || []
-  };
+  return getStoreReadOnly(db);
 }
+
 
 export function cleanJsonArray(value, maxItems = 40, maxItemLength = 2000) {
   if (!Array.isArray(value)) return [];
