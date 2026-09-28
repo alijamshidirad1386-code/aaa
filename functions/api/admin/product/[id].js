@@ -10,7 +10,8 @@ import {
   ensureProductWriteSchema,
   ensureMediaSchema,
   coerceDbValue,
-  extractDbError
+  extractDbError,
+  makeUniqueSlug
 } from '../../_shared.js';
 
 export async function onRequestPut(context) {
@@ -49,8 +50,10 @@ export async function onRequestPut(context) {
     }
 
     const image = cleanString(b?.image, 500000) || (imageKey ? `/api/media/${encodeURIComponent(imageKey)}` : '');
+    const requestedSlug = cleanString(b?.slug, 160) || cleanString(b?.details?.slug, 160) || name;
+    const slug = await makeUniqueSlug(db, 'products', requestedSlug, { excludeId: id, fallback: 'product' });
     const result = await db.prepare(`UPDATE products SET
-      name=?, category_id=?, stock_status=?, original_price=?, discount_percent=?, final_price=?,
+      name=?, slug=?, category_id=?, stock_status=?, original_price=?, discount_percent=?, final_price=?,
       is_featured=?, is_best_seller=?, is_new=?, image=?, image_key=?, short_desc=?, full_desc=?, updated_at=?
       WHERE id=?`)
       .bind(
@@ -72,7 +75,7 @@ export async function onRequestPut(context) {
       ).run();
 
     if (!Number(result?.meta?.changes ?? 0)) return bad('محصول موردنظر پیدا نشد.', 404);
-    await upsertProductDetails(db, id, buildProductDetails(b?.details || b));
+    await upsertProductDetails(db, id, buildProductDetails({ ...(b?.details || b), slug }));
     return json({ ok: true, store: await getStore(db) });
   } catch (error) {
     console.error('ADMIN_PRODUCT_UPDATE_ERROR', error);
