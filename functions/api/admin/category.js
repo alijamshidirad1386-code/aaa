@@ -23,9 +23,9 @@ export async function onRequestPost(context) {
     const name = cleanString(b?.name, 150);
     if (!name) return bad('نام دسته‌بندی الزامی است.');
     const imageKeyRaw = cleanString(b?.imageKey, 200);
-    await ensureMediaSchema(db);
     const imageKey = imageKeyRaw ? await coerceDbValue(db, 'categories', 'image_key', imageKeyRaw) : '';
     if (imageKeyRaw) {
+      await ensureMediaSchema(db);
       const mediaKey = await coerceDbValue(db, 'media_assets', 'id', imageKeyRaw);
       const media = await db.prepare('SELECT id FROM media_assets WHERE id = ? LIMIT 1').bind(mediaKey).first();
       if (!media) return bad('تصویر انتخاب‌شده در سرور پیدا نشد. ابتدا تصویر را دوباره آپلود کنید.', 409);

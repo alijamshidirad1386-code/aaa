@@ -6,7 +6,7 @@ import {
   requireAdmin,
   requireJson,
   cleanString,
-  ensureExtendedSchema,
+  ensureProductWriteSchema,
   ensureMediaSchema,
   isIntegerPrimaryKey,
   coerceDbValue,
@@ -28,7 +28,7 @@ export async function onRequestPost(context) {
     if (!name || !requestedCategoryId) return bad('نام محصول و دسته‌بندی الزامی است.');
 
     const db = context.env.DB;
-    await ensureExtendedSchema(db);
+    await ensureProductWriteSchema(db);
 
     const categoryId = await coerceDbValue(db, 'categories', 'id', requestedCategoryId);
     const category = await db.prepare('SELECT id FROM categories WHERE id = ? LIMIT 1').bind(categoryId).first();
@@ -37,9 +37,9 @@ export async function onRequestPost(context) {
     }
 
     const imageKey = cleanString(b?.imageKey, 200);
-    await ensureMediaSchema(db);
     const dbImageKey = imageKey ? await coerceDbValue(db, 'products', 'image_key', imageKey) : '';
     if (imageKey) {
+      await ensureMediaSchema(db);
       const mediaKey = await coerceDbValue(db, 'media_assets', 'id', imageKey);
       const media = await db.prepare('SELECT id FROM media_assets WHERE id = ? LIMIT 1').bind(mediaKey).first();
       if (!media) return bad('تصویر انتخاب‌شده در سرور پیدا نشد. دوباره تصویر را آپلود کنید.', 409, { errorCode: 'MEDIA_NOT_FOUND' });
