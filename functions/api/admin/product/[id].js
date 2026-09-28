@@ -1,4 +1,4 @@
-import { bad, buildProductDetails, getStore, json, requireAdmin, requireJson, cleanString, upsertProductDetails, ensureExtendedSchema } from '../../_shared.js';
+import { bad, buildProductDetails, getStore, json, requireAdmin, requireJson, cleanString, upsertProductDetails, ensureExtendedSchema, ensureMediaSchema } from '../../_shared.js';
 
 export async function onRequestPut(context) {
   if (!(await requireAdmin(context))) return bad('نیاز به ورود مدیر دارید.', 401);
@@ -17,6 +17,12 @@ export async function onRequestPut(context) {
     : Math.round(originalPrice * (1 - discountPercent / 100));
   const db = context.env.DB;
   await ensureExtendedSchema(db);
+  const imageKey = cleanString(b?.imageKey, 200);
+  if (imageKey) {
+    await ensureMediaSchema(db);
+    const media = await db.prepare('SELECT id FROM media_assets WHERE id = ? LIMIT 1').bind(imageKey).first();
+    if (!media) return bad('تصویر انتخاب‌شده در سرور پیدا نشد. دوباره تصویر را آپلود کنید.', 409);
+  }
 
   const result = await db.prepare(`UPDATE products SET
     name=?, category_id=?, stock_status=?, original_price=?, discount_percent=?, final_price=?,
@@ -32,8 +38,8 @@ export async function onRequestPut(context) {
       Boolean(b?.isFeatured) ? 1 : 0,
       Boolean(b?.isBestSeller) ? 1 : 0,
       Boolean(b?.isNew) ? 1 : 0,
-      cleanString(b?.image, 500000),
-      cleanString(b?.imageKey, 200),
+      cleanString(b?.image, 500000) || (imageKey ? `/api/media/${imageKey}` : ''),
+      imageKey,
       cleanString(b?.shortDesc, 3000),
       cleanString(b?.fullDesc, 15000),
       new Date().toISOString(),
