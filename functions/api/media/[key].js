@@ -9,7 +9,7 @@ function toArrayBuffer(value) {
 
 export async function onRequestGet(context) {
   const key = String(context.params?.key || '').trim();
-  if (!/^[a-zA-Z0-9_-]{20,80}$/.test(key)) return new Response('Not found', { status: 404 });
+  if (!/^(?:[a-zA-Z0-9_-]{1,80})$/.test(key)) return new Response('Not found', { status: 404 });
   if (!context.env?.DB) return new Response('Media database unavailable', { status: 503 });
 
   try { await ensureMediaSchema(context.env.DB); } catch (error) {
