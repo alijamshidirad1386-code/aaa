@@ -135,6 +135,102 @@ export function cleanString(value, max = 100000) {
   return typeof value === 'string' ? value.trim().slice(0, max) : '';
 }
 
+
+// Legacy D1 compatibility helpers. Older PetraPet databases may have used
+// INTEGER PRIMARY KEY columns for categories/products/media while newer
+// schemas use TEXT keys. D1/SQLite will throw SQLITE_MISMATCH when a string
+// such as "cat_xxx" is inserted into an INTEGER PRIMARY KEY, so the admin API
+// must detect the live column type instead of assuming the latest schema.
+export async function getColumnInfo(db, table, column) {
+  if (!db) throw new Error('D1 binding is missing');
+  const safeTable = String(table || '').replace(/[^A-Za-z0-9_]/g, '');
+  const safeColumn = String(column || '').replace(/[^A-Za-z0-9_]/g, '');
+  if (!safeTable || !safeColumn) throw new Error('Invalid schema identifier');
+  const result = await db.prepare(`PRAGMA table_info("${safeTable}")`).all();
+  const row = (result?.results || []).find(r => String(r.name || '').toLowerCase() === safeColumn.toLowerCase());
+  return row || null;
+}
+
+export async function getColumnKind(db, table, column) {
+  const row = await getColumnInfo(db, table, column);
+  if (!row) return 'unknown';
+  const declared = String(row.type || '').trim().toUpperCase();
+  if (Number(row.pk) > 0 && declared === 'INTEGER') return 'integer-primary-key';
+  if (/^INT(?:EGER)?\b/.test(declared)) return 'integer';
+  if (/^(REAL|FLOAT|DOUBLE)\b/.test(declared)) return 'real';
+  if (/^(BLOB)\b/.test(declared)) return 'blob';
+  return 'text';
+}
+
+export async function coerceDbValue(db, table, column, value) {
+  const kind = await getColumnKind(db, table, column);
+  if (kind === 'integer-primary-key' || kind === 'integer') {
+    if (value === null || value === undefined || value === '') return null;
+    const numeric = Number(String(value).trim());
+    if (!Number.isSafeInteger(numeric)) {
+      throw new Error(`مقدار ${table}.${column} باید عدد صحیح باشد؛ مقدار «${String(value)}» قابل تبدیل نیست.`);
+    }
+    return numeric;
+  }
+  return String(value ?? '').trim();
+}
+
+export async function isIntegerPrimaryKey(db, table, column = 'id') {
+  return (await getColumnKind(db, table, column)) === 'integer-primary-key';
+}
+
+export async function getNextCompatibleTextId(db, table, column = 'id') {
+  const safeTable = String(table || '').replace(/[^A-Za-z0-9_]/g, '');
+  const safeColumn = String(column || '').replace(/[^A-Za-z0-9_]/g, '');
+  if (!safeTable || !safeColumn) throw new Error('Invalid schema identifier');
+  const rows = await db.prepare(`SELECT "${safeColumn}" AS id FROM "${safeTable}"`).all();
+  let next = 0;
+  for (const row of rows?.results || []) {
+    const value = String(row?.id ?? '').trim();
+    if (/^\d+$/.test(value)) {
+      const numeric = Number(value);
+      if (Number.isSafeInteger(numeric) && numeric > next) next = numeric;
+    }
+  }
+  for (let i = 0; i < 20; i++) {
+    next += 1;
+    const candidate = String(next);
+    const found = await db.prepare(`SELECT 1 FROM "${safeTable}" WHERE "${safeColumn}"=? LIMIT 1`).bind(candidate).first();
+    if (!found) return candidate;
+  }
+  throw new Error(`نتوانستم شناسه یکتای عددی برای ${safeTable}.${safeColumn} بسازم.`);
+}
+
+export async function makeCompatibleTextId(db, table, column, prefix, dependencies = []) {
+  const kind = await getColumnKind(db, table, column);
+  if (kind === 'integer-primary-key' || kind === 'integer') return null;
+  let numericRequired = false;
+  for (const dep of dependencies) {
+    const depKind = await getColumnKind(db, dep?.table, dep?.column);
+    if (depKind === 'integer-primary-key' || depKind === 'integer') {
+      numericRequired = true;
+      break;
+    }
+  }
+  if (numericRequired) return getNextCompatibleTextId(db, table, column);
+  return `${String(prefix || 'id')}_${crypto.randomUUID()}`;
+}
+
+export function extractDbError(error) {
+  const candidates = [
+    error?.message,
+    error?.cause?.message,
+    error?.cause?.cause?.message,
+    error?.code,
+    error?.cause?.code,
+    error?.name,
+    error?.cause?.name
+  ].filter(Boolean).map(v => String(v));
+  const message = candidates.find(v => /SQLITE_|D1_|datatype mismatch|constraint failed|no such column|not found|UNIQUE/i.test(v)) || candidates[0] || 'خطای نامشخص';
+  const code = candidates.find(v => /^SQLITE_[A-Z_]+$/.test(v)) || candidates.find(v => /^D1_[A-Z_]+$/.test(v)) || '';
+  return { message: message.slice(0, 500), code: code.slice(0, 120) };
+}
+
 function safeJson(value, fallback) {
   try {
     const parsed = JSON.parse(String(value ?? ''));
@@ -350,7 +446,29 @@ export async function ensureExtendedSchema(db) {
   ];
   for (const [name, type] of productDetailColumns) await exec(`ALTER TABLE product_details ADD COLUMN ${name} ${type}`);
   await exec('CREATE INDEX IF NOT EXISTS idx_product_details_brand ON product_details(brand)');
-  await exec(`INSERT OR IGNORE INTO product_details(product_id, created_at, updated_at) SELECT id, datetime('now'), datetime('now') FROM products`);
+  // Backfill product_details without a cross-table SQL INSERT. Older deployments
+  // can contain TEXT products.id with INTEGER product_details.product_id (or the
+  // reverse), and SQLite raises SQLITE_MISMATCH when the values are copied directly.
+  // Only create missing detail rows when the live values can be represented safely.
+  try {
+    const detailKind = await getColumnKind(db, 'product_details', 'product_id');
+    const productRows = await db.prepare('SELECT id FROM products').all();
+    for (const productRow of productRows?.results || []) {
+      const rawProductId = String(productRow?.id ?? '');
+      if (!rawProductId) continue;
+      let detailId = rawProductId;
+      if (detailKind === 'integer-primary-key' || detailKind === 'integer') {
+        const numericId = Number(rawProductId);
+        if (!Number.isSafeInteger(numericId)) continue;
+        detailId = numericId;
+      }
+      await db.prepare(`INSERT OR IGNORE INTO product_details(product_id, created_at, updated_at) VALUES(?,?,?)`)
+        .bind(detailId, new Date().toISOString(), new Date().toISOString()).run();
+    }
+  } catch (error) {
+    const dbError = extractDbError(error);
+    console.warn('PRODUCT_DETAILS_BACKFILL_SKIPPED', dbError);
+  }
 
   await exec(`CREATE TABLE IF NOT EXISTS product_reviews (
     id TEXT PRIMARY KEY, product_id TEXT NOT NULL, customer_name TEXT NOT NULL DEFAULT '', rating INTEGER NOT NULL DEFAULT 5,
@@ -546,6 +664,7 @@ export function buildProductDetails(body = {}) {
 export async function upsertProductDetails(db, productId, details) {
   await ensureExtendedSchema(db);
   const now = new Date().toISOString();
+  const dbProductId = await coerceDbValue(db, 'product_details', 'product_id', productId);
   return db.prepare(`INSERT INTO product_details(
     product_id,slug,brand,weight,volume,flavor,suitable_age,goals,ingredients,nutrition_analysis,country,barcode,expiry_date,
     usage_method,warranty,storage,authenticity,actual_stock,min_stock,restock_time,rating,review_count,sales_count,more_images_json,
@@ -560,7 +679,7 @@ export async function upsertProductDetails(db, productId, details) {
     more_images_json=excluded.more_images_json,faq_json=excluded.faq_json,related_ids_json=excluded.related_ids_json,tags_json=excluded.tags_json,
     consumable=excluded.consumable,updated_at=excluded.updated_at`)
     .bind(
-      productId, details.slug, details.brand, details.weight, details.volume, details.flavor, details.suitableAge, details.goals,
+      dbProductId, details.slug, details.brand, details.weight, details.volume, details.flavor, details.suitableAge, details.goals,
       details.ingredients, details.nutritionAnalysis, details.country, details.barcode, details.expiryDate, details.usageMethod,
       details.warranty, details.storage, details.authenticity, details.actualStock, details.minStock, details.restockTime, details.rating,
       details.reviewCount, details.salesCount, JSON.stringify(details.moreImages), JSON.stringify(details.faq), JSON.stringify(details.relatedIds),
