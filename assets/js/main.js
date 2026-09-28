@@ -1963,7 +1963,10 @@ async function adminDeleteCategory(catId) {
  */
 async function handleAdminAddProduct(e) {
   e.preventDefault();
-  if (!backendReady) { showToast("ارتباط با سرور برقرار نیست.", "error"); return; }
+  // backendReady reflects the public /api/store bootstrap, not the admin session itself.
+  // A temporary store-read failure must not block a valid admin from publishing a product.
+  if (!isAdminLoggedIn) { await checkRemoteAdminSession(); }
+  if (!isAdminLoggedIn) { showToast("لطفاً ابتدا وارد پنل مدیریت شوید.", "error"); return; }
   const name = document.getElementById("admin-new-name")?.value.trim() || "";
   const cat = document.getElementById("admin-new-cat")?.value || "";
   const price = parseFloat(document.getElementById("admin-new-price")?.value) || 0;
