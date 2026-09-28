@@ -121,7 +121,9 @@ function normalizeCart(list) {
 }
 
 async function apiRequest(path, options = {}) {
-  const { timeoutMs = 0, ...requestOptions } = options || {};
+  const rawTimeout = Number(options?.timeoutMs || 0);
+  const timeoutMs = rawTimeout > 0 ? rawTimeout : (/^\/admin\//.test(String(path || '')) ? 20000 : 0);
+  const { timeoutMs: _ignoredTimeout, ...requestOptions } = options || {};
   const controller = timeoutMs > 0 && typeof AbortController !== "undefined" ? new AbortController() : null;
   let timeoutId = null;
   if (controller) timeoutId = setTimeout(() => controller.abort(), timeoutMs);
@@ -140,11 +142,20 @@ async function apiRequest(path, options = {}) {
     let data = null;
     try { data = text ? JSON.parse(text) : null; } catch { data = { ok: false, error: text || "پاسخ نامعتبر از سرور" }; }
     if (!response.ok || data?.ok === false) {
-      const err = new Error(data?.error || `HTTP ${response.status}`);
+      const serverMessage = data?.error || `HTTP ${response.status}`;
+      const detail = data?.details?.database ? `\nجزئیات دیتابیس: ${data.details.database}` : '';
+      const err = new Error(`${serverMessage}${detail}`);
       err.status = response.status;
+      err.code = data?.code || '';
+      err.details = data?.details || null;
       throw err;
     }
     return data;
+  } catch (error) {
+    if (error?.name === 'AbortError') {
+      throw new Error(`ارتباط با سرور بیش از حد طول کشید. لطفاً دوباره تلاش کنید (${String(path || '').replace(/^\//, '') || 'API'}).`);
+    }
+    throw error;
   } finally {
     if (timeoutId) clearTimeout(timeoutId);
   }
@@ -181,26 +192,42 @@ function readPetraPetStoreCache() {
   } catch (_) { return null; }
 }
 
-async function refreshRemoteStore() {
-  const data = await apiRequest("/store", { timeoutMs: 6000 });
-  applyRemoteStore(data);
-  try { sessionStorage.setItem(FOXSHOP_STORE_CACHE_KEY, JSON.stringify({ ts: Date.now(), data })); } catch (_) {}
-  return data;
-}
-
 // Start the public catalog request as soon as this script is parsed. A recent
 // session cache paints the catalog immediately, while a background request
 // refreshes it without making page initialization wait for the network.
 let foxShopEarlyStorePromise = null;
+let remoteStoreInFlight = null;
+let lastRemoteStoreAt = 0;
+
+async function refreshRemoteStore(options = {}) {
+  const force = Boolean(options?.force);
+  const cacheWindow = Number(options?.cacheWindowMs || 8000);
+  if (!force && lastRemoteStoreAt && lastRemoteStore && Date.now() - lastRemoteStoreAt < cacheWindow) {
+    return { ok: true, ...lastRemoteStore };
+  }
+  if (remoteStoreInFlight) return remoteStoreInFlight;
+  remoteStoreInFlight = apiRequest("/store", { timeoutMs: 8000 })
+    .then(data => {
+      applyRemoteStore(data);
+      lastRemoteStoreAt = Date.now();
+      try { sessionStorage.setItem(FOXSHOP_STORE_CACHE_KEY, JSON.stringify({ ts: Date.now(), data })); } catch (_) {}
+      return data;
+    })
+    .finally(() => { remoteStoreInFlight = null; });
+  return remoteStoreInFlight;
+}
+
 function getRemoteStoreOnce() {
   if (!foxShopEarlyStorePromise) {
     const cached = readPetraPetStoreCache();
     if (cached) {
       applyRemoteStore(cached);
+      lastRemoteStoreAt = Date.now();
       foxShopEarlyStorePromise = Promise.resolve(cached);
-      Promise.resolve().then(() => refreshRemoteStore().catch(() => {}));
+      // Refresh in the background without starting a second simultaneous request.
+      Promise.resolve().then(() => refreshRemoteStore({ force: false }).catch(() => {}));
     } else {
-      foxShopEarlyStorePromise = refreshRemoteStore();
+      foxShopEarlyStorePromise = refreshRemoteStore({ force: true });
     }
   }
   return foxShopEarlyStorePromise;
@@ -217,11 +244,10 @@ if (typeof window !== "undefined" && typeof fetch === "function") {
 
 async function checkRemoteAdminSession() {
   try {
-    const data = await apiRequest("/admin/me", { method: "GET" });
+    const data = await apiRequest("/admin/me", { method: "GET", timeoutMs: 6000 });
     if (data.authenticated) {
       isAdminLoggedIn = true;
       adminUsername = data.username || DEFAULT_ADMIN_USERNAME;
-      refreshRemoteStore().catch(() => {});
     }
   } catch (_) {
     // Not logged in or backend is unavailable; public catalog fallback remains active.
@@ -1060,23 +1086,32 @@ async function openAdminModal() {
   if (!modal) {
     modal = document.createElement("div");
     modal.id = "admin-portal-modal";
-    modal.className = "fixed inset-0 z-50 bg-slate-950/75 backdrop-blur-sm hidden flex items-center justify-center p-2 sm:p-5";
+    // Keep the admin overlay cheap on mobile; the page already supplies a solid backdrop.
+    modal.className = "fixed inset-0 z-50 bg-slate-950/75 hidden flex items-center justify-center p-2 sm:p-5";
     document.body.appendChild(modal);
   }
+
+  // Paint the modal immediately. The previous implementation waited for two
+  // network requests before showing anything, which made the panel feel frozen
+  // on mobile even when the UI itself was ready.
+  modal.classList.remove("hidden");
+  try { renderAdminPortal(); } catch (err) { console.error("initial admin render error:", err); }
 
   if (!isAdminLoggedIn) {
     try { await checkRemoteAdminSession(); } catch (err) { console.warn("Admin session check failed:", err); }
   }
   if (isAdminLoggedIn) {
-    try { await refreshRemoteStore(); } catch (err) { console.warn("Admin live catalog refresh failed:", err); }
-  }
-  try {
+    // Never block the already-visible admin panel on the full catalog request.
+    // Refresh in the background and repaint when D1 responds; this prevents a
+    // slow/colder Worker isolate from making the mobile panel look frozen.
     renderAdminPortal();
-  } catch (err) {
-    console.error("renderAdminPortal error:", err);
-    showToast(`خطای نمایش پنل مدیریت: ${String(err?.message || err)}`, "error");
+    refreshRemoteStore({ force: false, cacheWindowMs: 10000 })
+      .then(() => { try { renderAdminPortal(); } catch (renderError) { console.error('Admin refresh render failed:', renderError); } })
+      .catch(err => {
+        console.error("Admin live catalog refresh failed:", err);
+        showToast(`خواندن اطلاعات پنل مدیریت ناموفق بود: ${err.message || err}`, 'error');
+      });
   }
-  modal.classList.remove("hidden");
 }
 
 function closeAdminModal() {
@@ -1238,7 +1273,7 @@ function renderAdminTabContent() {
             <i class="fa-solid fa-plus text-orange-600"></i>
             <span>افزودن محصول جدید</span>
           </h4>
-          <form onsubmit="handleAdminAddProduct(event)" class="space-y-3">
+          <form onsubmit="handleAdminAddProduct(event)" novalidate class="space-y-3">
             <div>
               <label class="block text-[11px] font-bold text-slate-600 mb-1">نام محصول:</label>
               <input type="text" id="admin-new-name" required placeholder="مثال: غذای خشک گربه رویال کنین 4kg"
@@ -1318,10 +1353,11 @@ function renderAdminTabContent() {
               </div>
             </details>
 
-            <button type="submit" class="w-full py-2 rounded-xl bg-orange-600 hover:bg-orange-700 text-white font-bold text-xs shadow-md transition flex items-center justify-center gap-1.5">
+            <button type="submit" id="admin-new-product-submit" class="w-full py-2 rounded-xl bg-orange-600 hover:bg-orange-700 text-white font-bold text-xs shadow-md transition flex items-center justify-center gap-1.5">
               <i class="fa-solid fa-floppy-disk"></i>
               <span>ذخیره و انتشار محصول</span>
             </button>
+            <div id="admin-new-product-status" class="hidden rounded-xl border px-3 py-2 text-[10px] leading-5" role="status" aria-live="polite"></div>
           </form>
         </div>
 
@@ -1351,7 +1387,7 @@ function renderAdminTabContent() {
             <i class="fa-solid fa-folder-plus text-orange-600"></i>
             <span>افزودن دسته‌بندی جدید با عکس WebP</span>
           </h4>
-          <form onsubmit="handleAdminAddCategory(event)" class="space-y-3">
+          <form onsubmit="handleAdminAddCategory(event)" novalidate class="space-y-3">
             <div>
               <label class="block text-[11px] font-bold text-slate-600 mb-1">نام دسته‌بندی (فارسی):</label>
               <input type="text" id="admin-cat-name" required placeholder="مثال: بستنی و کرمی گربه"
@@ -1422,10 +1458,11 @@ function renderAdminTabContent() {
               </div>
             </div>
 
-            <button type="submit" class="w-full py-2.5 rounded-xl bg-orange-600 hover:bg-orange-700 text-white font-bold text-xs shadow-md transition flex items-center justify-center gap-1.5">
+            <button type="submit" id="admin-new-category-submit" class="w-full py-2.5 rounded-xl bg-orange-600 hover:bg-orange-700 text-white font-bold text-xs shadow-md transition flex items-center justify-center gap-1.5">
               <i class="fa-solid fa-plus-circle"></i>
               <span>افزودن دسته‌بندی با عکس WebP</span>
             </button>
+            <div id="admin-new-category-status" class="hidden rounded-xl border px-3 py-2 text-[10px] leading-5" role="status" aria-live="polite"></div>
           </form>
         </div>
 
@@ -1958,30 +1995,56 @@ function adminPromptEditCategoryPhoto(catId) {
  */
 async function handleAdminAddCategory(e) {
   e.preventDefault();
-  if (!isAdminLoggedIn) { await checkRemoteAdminSession(); }
-  if (!isAdminLoggedIn) { showToast("لطفاً ابتدا وارد پنل مدیریت شوید.", "error"); return; }
-  const name = document.getElementById("admin-cat-name")?.value.trim() || "";
-  const img = document.getElementById("admin-cat-img")?.value.trim() || "";
-  const icon = document.getElementById("admin-cat-icon")?.value || "fa-paw";
-  const color = document.getElementById("admin-cat-color")?.value || "from-orange-500 to-amber-500";
-  const imageKey = document.getElementById("admin-cat-img-key")?.value || "";
-  const fileInput = document.getElementById("admin-cat-file");
-  if (fileInput?.dataset.uploading === "1") {
-    showToast("لطفاً صبر کنید تا آپلود و فشرده‌سازی تصویر دسته‌بندی تمام شود.", "info");
-    return;
-  }
-  if (!name) { showToast("لطفاً نام دسته‌بندی را وارد نمایید", "info"); return; }
-  if (img && !imageKey && !/^https?:\/\//i.test(img) && !/^\/[^\s]+$/.test(img)) {
-    showToast("آدرس تصویر معتبر نیست. از لینک http/https یا آپلود مستقیم استفاده کنید.", "error");
-    return;
-  }
+  const form = e?.currentTarget || document.querySelector('form[onsubmit*="handleAdminAddCategory"]');
+  const button = document.getElementById('admin-new-category-submit');
+  const status = document.getElementById('admin-new-category-status');
+  const setBusy = (busy, text = '') => {
+    if (button) {
+      button.disabled = busy;
+      button.classList.toggle('opacity-60', busy);
+      button.innerHTML = busy
+        ? '<i class="fa-solid fa-spinner fa-spin"></i><span>در حال ذخیره…</span>'
+        : '<i class="fa-solid fa-plus-circle"></i><span>افزودن دسته‌بندی با عکس WebP</span>';
+    }
+    if (status) {
+      status.classList.toggle('hidden', !text);
+      status.className = `rounded-xl border px-3 py-2 text-[10px] leading-5 ${busy ? 'border-amber-200 bg-amber-50 text-amber-800' : 'border-rose-200 bg-rose-50 text-rose-700'}`;
+      status.textContent = text;
+    }
+  };
+
   try {
-    const data = await apiRequest("/admin/category", { method:"POST", body: JSON.stringify({ name, slug:name, image:img, imageKey, icon, color }) });
-    applyRemoteStore(data.store); renderAdminPortal(); initHeader();
-    if (typeof renderHomeCategories === "function") renderHomeCategories();
-    if (typeof renderCategoryPills === "function") renderCategoryPills();
-    showToast("دسته‌بندی جدید با شناسه خودکار ذخیره شد 🐾", "success");
-  } catch (err) { showToast(err.message || "خطا در ذخیره دسته‌بندی", "error"); }
+    if (!isAdminLoggedIn) await checkRemoteAdminSession();
+    if (!isAdminLoggedIn) throw new Error('لطفاً ابتدا وارد پنل مدیریت شوید.');
+
+    const name = document.getElementById('admin-cat-name')?.value.trim() || '';
+    const img = document.getElementById('admin-cat-img')?.value.trim() || '';
+    const icon = document.getElementById('admin-cat-icon')?.value || 'fa-paw';
+    const color = document.getElementById('admin-cat-color')?.value || 'from-orange-500 to-amber-500';
+    const imageKey = document.getElementById('admin-cat-img-key')?.value || '';
+    const fileInput = document.getElementById('admin-cat-file');
+    if (fileInput?.dataset.uploading === '1') throw new Error('لطفاً صبر کنید تا آپلود و فشرده‌سازی تصویر دسته‌بندی تمام شود.');
+    if (!name) throw new Error('لطفاً نام دسته‌بندی را وارد نمایید.');
+    if (img && !imageKey && !/^https?:\/\//i.test(img) && !/^\/[^\s]+$/.test(img)) {
+      throw new Error('آدرس تصویر معتبر نیست. از لینک http/https یا آپلود مستقیم استفاده کنید.');
+    }
+
+    setBusy(true, 'در حال ارسال دسته‌بندی به D1…');
+    const data = await apiRequest('/admin/category', {
+      method: 'POST',
+      body: JSON.stringify({ name, slug: name, image: img, imageKey, icon, color })
+    });
+    applyRemoteStore(data.store);
+    renderAdminPortal();
+    initHeader();
+    if (typeof renderHomeCategories === 'function') renderHomeCategories();
+    if (typeof renderCategoryPills === 'function') renderCategoryPills();
+    showToast('دسته‌بندی با موفقیت ذخیره شد 🐾', 'success');
+  } catch (err) {
+    console.error('handleAdminAddCategory', err);
+    setBusy(false, err.message || 'خطا در ذخیره دسته‌بندی');
+    showToast(err.message || 'خطا در ذخیره دسته‌بندی', 'error');
+  }
 }
 
 async function adminDeleteCategory(catId) {
@@ -2000,68 +2063,98 @@ async function adminDeleteCategory(catId) {
  */
 async function handleAdminAddProduct(e) {
   e.preventDefault();
-  // backendReady reflects the public /api/store bootstrap, not the admin session itself.
-  // A temporary store-read failure must not block a valid admin from publishing a product.
-  if (!isAdminLoggedIn) { await checkRemoteAdminSession(); }
-  if (!isAdminLoggedIn) { showToast("لطفاً ابتدا وارد پنل مدیریت شوید.", "error"); return; }
-  const name = document.getElementById("admin-new-name")?.value.trim() || "";
-  const cat = document.getElementById("admin-new-cat")?.value || "";
-  const price = parseFloat(document.getElementById("admin-new-price")?.value) || 0;
-  const discount = parseInt(document.getElementById("admin-new-discount")?.value, 10) || 0;
-  const stock = document.getElementById("admin-new-stock")?.value || "in_stock";
-  const img = document.getElementById("admin-new-img")?.value.trim() || "";
-  const imageKey = document.getElementById("admin-new-img-key")?.value || "";
-  const fileInput = document.getElementById("admin-product-file");
-  const desc = document.getElementById("admin-new-desc")?.value.trim() || "";
-  if (fileInput?.dataset.uploading === "1") {
-    showToast("لطفاً صبر کنید تا آپلود و فشرده‌سازی تصویر تمام شود.", "info");
-    return;
-  }
-  if (!name || !cat) { showToast("نام محصول و دسته‌بندی الزامی است.", "info"); return; }
-  const finalPrice = discount > 0 ? Math.round(price * (1 - discount / 100)) : price;
+  const form = e?.currentTarget;
+  const button = document.getElementById('admin-new-product-submit');
+  const status = document.getElementById('admin-new-product-status');
+  const setBusy = (busy, text = '', error = false) => {
+    if (button) {
+      button.disabled = busy;
+      button.classList.toggle('opacity-60', busy);
+      button.innerHTML = busy
+        ? '<i class="fa-solid fa-spinner fa-spin"></i><span>در حال انتشار…</span>'
+        : '<i class="fa-solid fa-floppy-disk"></i><span>ذخیره و انتشار محصول</span>';
+    }
+    if (status) {
+      status.classList.toggle('hidden', !text);
+      status.className = `rounded-xl border px-3 py-2 text-[10px] leading-5 ${error ? 'border-rose-200 bg-rose-50 text-rose-700' : 'border-amber-200 bg-amber-50 text-amber-800'}`;
+      status.textContent = text;
+    }
+  };
+
   try {
-    try {
-      const liveStore = await refreshRemoteStore();
-      const selectedCategory = (liveStore.categories || []).find(c => String(c.id) === String(cat));
-      if (!selectedCategory) {
-        renderAdminPortal();
-        throw new Error("دسته‌بندی انتخاب‌شده در دیتابیس وجود ندارد. فهرست دسته‌بندی‌ها تازه‌سازی شد؛ لطفاً یکی از دسته‌بندی‌های فعلی را انتخاب کنید.");
-      }
-    } catch (refreshError) {
-      if (refreshError?.message?.includes("دسته‌بندی انتخاب‌شده")) throw refreshError;
-      console.warn("Live category refresh before product publish failed:", refreshError);
-    }
-    const currentCat = document.getElementById("admin-new-cat")?.value || cat;
-    if (!currentCat) {
-      renderAdminPortal();
-      throw new Error("هیچ دسته‌بندی معتبری برای این محصول انتخاب نشده است.");
-    }
-    const data = await apiRequest("/admin/product", { method:"POST", body: JSON.stringify({
-      name, categoryId:currentCat, originalPrice:price, discountPercent:discount, finalPrice, stockStatus:stock, image:img, imageKey, shortDesc:desc, fullDesc:desc,
-      isFeatured:true, isBestSeller:false, isNew:true,
-      brand:document.getElementById("admin-new-brand")?.value.trim() || "",
-      weight:document.getElementById("admin-new-weight")?.value.trim() || "",
-      flavor:document.getElementById("admin-new-flavor")?.value.trim() || "",
-      suitableAge:document.getElementById("admin-new-age")?.value.trim() || "",
-      goals:document.getElementById("admin-new-goals")?.value.trim() || "",
-      country:document.getElementById("admin-new-country")?.value.trim() || "",
-      barcode:document.getElementById("admin-new-barcode")?.value.trim() || "",
-      expiryDate:document.getElementById("admin-new-expiry")?.value.trim() || "",
-      actualStock:document.getElementById("admin-new-stock-qty")?.value || "",
-      minStock:document.getElementById("admin-new-min-stock")?.value || "",
-      restockTime:document.getElementById("admin-new-restock")?.value.trim() || "",
-      consumable:!!document.getElementById("admin-new-consumable")?.checked,
-      ingredients:document.getElementById("admin-new-ingredients")?.value.trim() || "",
-      nutritionAnalysis:document.getElementById("admin-new-nutrition")?.value.trim() || "",
-      usageMethod:document.getElementById("admin-new-usage")?.value.trim() || "",
-      storage:document.getElementById("admin-new-storage")?.value.trim() || "",
-      warranty:document.getElementById("admin-new-warranty")?.value.trim() || ""
-    }) });
-    applyRemoteStore(data.store); renderAdminPortal(); e.target.reset();
-    if (typeof renderProductsCatalog === "function") renderProductsCatalog();
-    if (typeof renderFeaturedProducts === "function") renderFeaturedProducts();
-    showToast("محصول جدید با موفقیت در Cloudflare D1 ذخیره و منتشر شد 🐾", "success");
-  } catch (err) { showToast(err.message || "خطا در ذخیره محصول", "error"); }
+    if (!isAdminLoggedIn) await checkRemoteAdminSession();
+    if (!isAdminLoggedIn) throw new Error('لطفاً ابتدا وارد پنل مدیریت شوید.');
+
+    const name = document.getElementById('admin-new-name')?.value.trim() || '';
+    const cat = document.getElementById('admin-new-cat')?.value || '';
+    const price = parseFloat(document.getElementById('admin-new-price')?.value) || 0;
+    const discount = Math.min(90, Math.max(0, parseInt(document.getElementById('admin-new-discount')?.value, 10) || 0));
+    const stock = document.getElementById('admin-new-stock')?.value || 'in_stock';
+    const img = document.getElementById('admin-new-img')?.value.trim() || '';
+    const imageKey = document.getElementById('admin-new-img-key')?.value || '';
+    const fileInput = document.getElementById('admin-product-file');
+    const desc = document.getElementById('admin-new-desc')?.value.trim() || '';
+
+    if (fileInput?.dataset.uploading === '1') throw new Error('لطفاً صبر کنید تا آپلود و فشرده‌سازی تصویر تمام شود.');
+    if (!name) throw new Error('نام محصول الزامی است.');
+    if (!cat) throw new Error('هیچ دسته‌بندی‌ای انتخاب نشده است.');
+    if (price < 0) throw new Error('قیمت محصول نامعتبر است.');
+    if (img && !imageKey && !/^https?:\/\//i.test(img) && !/^\/[^\s]+$/.test(img)) throw new Error('آدرس تصویر محصول نامعتبر است.');
+
+    const finalPrice = discount > 0 ? Math.round(price * (1 - discount / 100)) : price;
+    setBusy(true, 'در حال اعتبارسنجی دسته‌بندی و ذخیره محصول در D1…');
+
+    // Do not refresh the entire store before publishing. The API checks the live
+    // category in D1 itself. A second /api/store request here used to create a
+    // visible lag and could race with the freshly loaded admin state.
+    const data = await apiRequest('/admin/product', {
+      method: 'POST',
+      body: JSON.stringify({
+        name,
+        categoryId: cat,
+        originalPrice: price,
+        discountPercent: discount,
+        finalPrice,
+        stockStatus: stock,
+        image: img,
+        imageKey,
+        shortDesc: desc,
+        fullDesc: desc,
+        isFeatured: true,
+        isBestSeller: false,
+        isNew: true,
+        brand: document.getElementById('admin-new-brand')?.value.trim() || '',
+        weight: document.getElementById('admin-new-weight')?.value.trim() || '',
+        flavor: document.getElementById('admin-new-flavor')?.value.trim() || '',
+        suitableAge: document.getElementById('admin-new-age')?.value.trim() || '',
+        goals: document.getElementById('admin-new-goals')?.value.trim() || '',
+        country: document.getElementById('admin-new-country')?.value.trim() || '',
+        barcode: document.getElementById('admin-new-barcode')?.value.trim() || '',
+        expiryDate: document.getElementById('admin-new-expiry')?.value.trim() || '',
+        actualStock: document.getElementById('admin-new-stock-qty')?.value || '',
+        minStock: document.getElementById('admin-new-min-stock')?.value || '',
+        restockTime: document.getElementById('admin-new-restock')?.value.trim() || '',
+        consumable: !!document.getElementById('admin-new-consumable')?.checked,
+        ingredients: document.getElementById('admin-new-ingredients')?.value.trim() || '',
+        nutritionAnalysis: document.getElementById('admin-new-nutrition')?.value.trim() || '',
+        usageMethod: document.getElementById('admin-new-usage')?.value.trim() || '',
+        storage: document.getElementById('admin-new-storage')?.value.trim() || '',
+        warranty: document.getElementById('admin-new-warranty')?.value.trim() || ''
+      })
+    });
+
+    applyRemoteStore(data.store);
+    lastRemoteStoreAt = Date.now();
+    renderAdminPortal();
+    if (form) form.reset();
+    if (typeof renderProductsCatalog === 'function') renderProductsCatalog();
+    if (typeof renderFeaturedProducts === 'function') renderFeaturedProducts();
+    showToast('محصول با موفقیت ذخیره و منتشر شد 🐾', 'success');
+  } catch (err) {
+    console.error('handleAdminAddProduct', err);
+    setBusy(false, err.message || 'خطا در ذخیره محصول', true);
+    showToast(err.message || 'خطا در ذخیره محصول', 'error');
+  }
 }
 
 function closeAdminProductEditor() {
